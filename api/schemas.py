@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 
 
-class Stock(BaseModel):
+class StockBase(BaseModel):
     name: str
     ticker: str
     yahoo_ticker: str
@@ -25,3 +25,13 @@ class Stock(BaseModel):
     profit_margins: float
     volume: int
     status: int
+
+class StockCreate(StockBase):
+    pass
+
+class StockResponse(StockBase):
+    id: int
+    #TODO add "updated at" field here once it's implemented in the model.
+
+    class Config:
+        orm_mode = True
