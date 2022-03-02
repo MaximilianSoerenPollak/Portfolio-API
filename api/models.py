@@ -4,11 +4,10 @@ from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
 
 
-
 class Stock(Base):
-    __tablename__ = 'stocks'
+    __tablename__ = "stocks"
 
-    id_ = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String, nullable=False)
     ticker = Column(String)
     yahoo_ticker = Column(String, nullable=False)
@@ -32,4 +31,13 @@ class Stock(Base):
     profit_margins = Column(Float, nullable=True)
     volume = Column(BigInteger, nullable=True)
     status = Column(Integer, nullable=False, server_default="0")
-    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text('now()'))
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, nullable=False)
+    email = Column(String, nullable=False, unique=True)
+    password = Column(String, nullable=False)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))

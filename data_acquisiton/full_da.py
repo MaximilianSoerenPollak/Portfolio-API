@@ -1,41 +1,55 @@
-#%%
-import pandas as pd
-import json
-import requests
-from pprint import pprint
-import yahooquery as yq
 # %%
-#TODO EUronext still does not work. For now I will download the csv manually but it should somehow be fixed in the future
-#Link for HK https://www.hkex.com.hk/eng/services/trading/securities/securitieslists/ListOfSecurities.xlsx
+import pandas as pd
+import requests
+import yahooquery as yq
+
+# %%
+# TODO EUronext still does not work. For now I will download the csv manually but it should somehow be fixed in the future
+# Link for HK https://www.hkex.com.hk/eng/services/trading/securities/securitieslists/ListOfSecurities.xlsx
 url_nasdaq = "https://api.nasdaq.com/api/screener/stocks?exchange=NASDAQ&download=true&limit=10"
 url_nyse = "https://api.nasdaq.com/api/screener/stocks?exchange=NYSE&download=true&limit=10"
 # %%
 # This function currently only works for NASDAQ and NYSE URLs. Has to be modified if others are introduced.
 def get_tickers(url):
-    headers = {"User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 12871.102.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.141 Safari/537.36"}
+    headers = {
+        """User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 12871.102.0) AppleWebKit/537.36 (KHTML, like Gecko) 
+        Chrome/81.0.4044.141 Safari/537.36"""
+    }
     r = requests.get(url, headers=headers).json()
     df = pd.DataFrame(r["data"]["rows"])
     df = df[df["symbol"].str.len() < 5]
     index_to_delete = []
-    for index,value in enumerate(df["symbol"]):
+    for index, value in enumerate(df["symbol"]):
         if "^" in value:
             index_to_delete.append(index)
     df = df.drop(df.index[index_to_delete])
     df_result = pd.DataFrame(columns=["ticker"])
     df_result["ticker"] = df["symbol"]
     return df_result
+
+
 # %%
 def make_ticker_list(df, removed_tickers=None):
     ticker_list = list(df["ticker"])
     if removed_tickers:
         ticker_list = [x for x in ticker_list if x not in removed_tickers]
     return ticker_list
+
+
 # %%
 def get_stock_data(ticker_list):
-    ticker = yq.Ticker(ticker_list, asynchronous=True, progress=True, status_forcelist=[429, 500, 502, 503, 504, 404], validate=True)
-    modules="financialData quoteType summaryProfile summaryDetail"
+    ticker = yq.Ticker(
+        ticker_list,
+        asynchronous=True,
+        progress=True,
+        status_forcelist=[429, 500, 502, 503, 504, 404],
+        validate=True,
+    )
+    modules = "financialData quoteType summaryProfile summaryDetail"
     results = ticker.get_modules(modules)
     return results, ticker.invalid_symbols
+
+
 # %%
 def make_data_list(dictionary, ticker_list, upperdict, lowerdict):
     result_list = []
@@ -50,15 +64,39 @@ def make_data_list(dictionary, ticker_list, upperdict, lowerdict):
             else:
                 result_list.append("nan")
     return result_list
-#%%
+
+
 # %%
-#! Careful. yahooticker is integrated but not made working. It is for EU and Asian stocks once those are also in the DA pipeline
-#! Then there will be a need to rewrite yahoo_ticker BEFORE we gather the data via yahooquery (get_stock_data).
+# %%
+# ! Careful. yahooticker is integrated but not made working. It is for EU and Asian stocks once those are also in the DA pipeline
+# ! Then there will be a need to rewrite yahoo_ticker BEFORE we gather the data via yahooquery (get_stock_data).
+
 
 def make_df(dictionary, ticker_list):
-    columns = ["name", "ticker", "yahoo_ticker", "exchange", "sector", "industry", "long_business_summary", "country", "website", "price", "marketcap", "dividends", 
-    "dividend_yield", "ex_dividend_date", "beta", "fiftytwo_week_high", "fiftytwo_week_low", "fifty_day_average", "recommendation", "total_cash_per_share", 
-    "profit_margins", "volume"]
+    columns = [
+        "name",
+        "ticker",
+        "yahoo_ticker",
+        "exchange",
+        "sector",
+        "industry",
+        "long_business_summary",
+        "country",
+        "website",
+        "price",
+        "marketcap",
+        "dividends",
+        "dividend_yield",
+        "ex_dividend_date",
+        "beta",
+        "fiftytwo_week_high",
+        "fiftytwo_week_low",
+        "fifty_day_average",
+        "recommendation",
+        "total_cash_per_share",
+        "profit_margins",
+        "volume",
+    ]
     stock_df = pd.DataFrame(columns=columns)
     stock_df["name"] = make_data_list(dictionary, ticker_list, "quoteType", "shortName")
     stock_df["ticker"] = make_data_list(dictionary, ticker_list, "quoteType", "symbol")
@@ -83,14 +121,18 @@ def make_df(dictionary, ticker_list):
     stock_df["profit_margins"] = make_data_list(dictionary, ticker_list, "financialData", "proiftMargins")
     stock_df["volume"] = make_data_list(dictionary, ticker_list, "summaryDetail", "volume")
     return stock_df
+
+
 # %%
 def make_csv(df, filename, path):
-    df.to_csv(path+filename)
+    df.to_csv(path + filename)
     print(f"CSV has been save under {filename} in {path}")
+
+
 # %%
-#testing with just one atm. If this works then we are good
-#TODO test if it works with both stock lists.
-#TODO make 
+# testing with just one atm. If this works then we are good
+# TODO test if it works with both stock lists.
+# TODO make
 def main():
     nyse_tickers_df = get_tickers(url_nyse)
     # nasdaq_tickers_df = get_tickers(url_nasdaq)
@@ -99,5 +141,7 @@ def main():
     new_ticker_list_nyse = make_ticker_list(nyse_tickers_df, invalid_tickers)
     nyse_df = make_df(nyse_dict, new_ticker_list_nyse)
     make_csv(nyse_df, "nyse_1st_try.csv", "")
+
+
 # # # %%
 # %%
