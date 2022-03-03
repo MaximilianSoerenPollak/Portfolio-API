@@ -1,30 +1,31 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
+from typing import Optional
 
 
 class StockBase(BaseModel):
     name: str
     ticker: str
     yahoo_ticker: str
-    exchange: str
-    sector: str
-    industry: str
-    long_business_summary: str
-    country: str
-    website: str
+    exchange: Optional[str]
+    sector: Optional[str]
+    industry: Optional[str]
+    long_business_summary: Optional[str]
+    country: Optional[str]
+    website: Optional[str]
     price: float
-    marketcap: int
-    dividends: float
-    dividend_yield: float
-    ex_dividend_date: str
-    beta: float
-    fifty_two_week_high: float
-    fifty_two_week_low: float
-    fifty_day_avg: float
-    total_cash_per_share: float
-    profit_margins: float
-    volume: int
-    status: int
+    marketcap: Optional[int]
+    dividends: Optional[float]
+    dividend_yield: Optional[float]
+    ex_dividend_date: Optional[str]
+    beta: Optional[float]
+    fifty_two_week_high: Optional[float]
+    fifty_two_week_low: Optional[float]
+    fifty_day_avg: Optional[float]
+    total_cash_per_share: Optional[float]
+    profit_margins: Optional[float]
+    volume: Optional[int]
+    status: Optional[int]
 
 
 class StockCreate(StockBase):
@@ -57,3 +58,12 @@ class UserResponse(BaseModel):
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    id: Optional[str]
