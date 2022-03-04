@@ -16,7 +16,7 @@ def get_stocks(db: Session = Depends(get_db)):
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.StockResponse)
 def create_stock(
-    stock: schemas.StockCreate, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)
+    stock: schemas.StockCreate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)
 ):
     # !Todo: make a flag somehow in this stock so the stocks are marked as non searchable or "user_added" or something.
     new_stock = models.Stock(**stock.dict())
@@ -35,7 +35,7 @@ def get_stock(id: int, response: Response, db: Session = Depends(get_db)):
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_stock(id: int, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
+def delete_stock(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     # !Todo only admin can delete.
     stock = db.query(models.Stock).filter(models.Stock.id == id)
     if stock.first() is None:

@@ -29,11 +29,17 @@ class StockBase(BaseModel):
 
 
 class StockCreate(StockBase):
-    pass
+
+    created_by = Optional[int]
+
+    class Config:
+        orm_mode = True
+        arbitrary_types_allowed = True
 
 
 class StockResponse(StockBase):
     id: int
+    created_by: int
     created_at: datetime
     # TODO add "updated at" field here once it's implemented in the model.
 
@@ -67,3 +73,9 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     id: Optional[str]
+
+
+class PortfolioCreate(BaseModel):
+    name: str
+    dividends_goal: Optional[float]
+    monetary_goal: Optional[float]

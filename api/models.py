@@ -1,5 +1,5 @@
 from .database import Base
-from sqlalchemy import Column, Integer, String, Float, Date, BigInteger, Text
+from sqlalchemy import Column, Integer, String, Float, Date, BigInteger, Text, ForeignKey
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
 
@@ -31,7 +31,9 @@ class Stock(Base):
     profit_margins = Column(Float, nullable=True)
     volume = Column(BigInteger, nullable=True)
     status = Column(Integer, nullable=False, server_default="0")
+    created_by = Column(Integer, nullable=False, server_default="0")
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
+    # updated_at
 
 
 class User(Base):
@@ -41,3 +43,23 @@ class User(Base):
     email = Column(String, nullable=False, unique=True)
     password = Column(String, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
+
+
+class PortfolioStocks(Base):
+    __tablename__ = "portfolio_stocks"
+
+    id = Column(Integer, primary_key=True, nullable=False)
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
+    portfolio_id = Column(Integer, ForeignKey("portfolios.id", ondelete="CASCADE"), nullable=False)
+
+
+class Portfolio(Base):
+    __tablename__ = "portfolios"
+
+    id = Column(Integer, primary_key=True, nullable=False)
+    name = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    monetary_goal = Column(Float, nullable=True)
+    dividends_goal = Column(Float, nullable=True)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
+    # updated_at
