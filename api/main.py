@@ -5,7 +5,7 @@ from decouple import config
 from psycopg2.extras import RealDictCursor
 from .database import engine
 from . import models
-from .routers import stock, user, auth
+from .routers import stock, user, auth, portfolio
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -34,6 +34,7 @@ while True:
 app.include_router(stock.router)
 app.include_router(user.router)
 app.include_router(auth.router)
+app.include_router(portfolio.router)
 
 
 @app.get("/")

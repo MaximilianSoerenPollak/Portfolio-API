@@ -14,16 +14,23 @@ def get_stocks(db: Session = Depends(get_db)):
     return stocks
 
 
+@router.get("/user", response_model=List[schemas.StockResponse])
+def get_user_stocks(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+    stocks = db.query(models.Stock).filter(models.Stock.created_by == current_user.id).all()
+    return stocks
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.StockResponse)
 def create_stock(
-    stock: schemas.StockCreate, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)
+    stock: List[schemas.StockCreate],
+    db: Session = Depends(get_db),
+    current_user: int = Depends(oauth2.get_current_user),
 ):
-    # !Todo: make a flag somehow in this stock so the stocks are marked as non searchable or "user_added" or something.
-    new_stock = models.Stock(**stock.dict())
+    new_stock = models.Stock(created_by=current_user.id, **stock.dict())
     db.add(new_stock)
     db.commit()
-    db.refresh(new_stock)
-    return new_stock
+    db.refresh(stock)
+    return stock
 
 
 @router.get("/{id}", response_model=schemas.StockResponse)
@@ -37,19 +44,29 @@ def get_stock(id: int, response: Response, db: Session = Depends(get_db)):
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_stock(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     # !Todo only admin can delete.
-    stock = db.query(models.Stock).filter(models.Stock.id == id)
-    if stock.first() is None:
+    stock_query = db.query(models.Stock).filter(models.Stock.id == id)
+    stock = stock_query.first()
+    if stock is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ID: {id} does not exist")
-    stock.delete(syncrhonize_session=False)
+    if stock.created_by != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized.")
+    stock_query.delete(synchronize_session=False)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.put("/{id}", response_model=schemas.StockResponse)
-def update_stock(id: int, updated_stock: schemas.StockCreate, db: Session = Depends(get_db)):
+def update_stock(
+    id: int,
+    updated_stock: schemas.StockCreate,
+    db: Session = Depends(get_db),
+    current_user: int = Depends(oauth2.get_current_user),
+):
     stock_query = db.query(models.Stock).filter(models.Stock.id == id)
     stock = stock_query.first()
     if stock is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ID: {id} does not excist")
-    stock_query.update(updated_stock.dict(), syncrhonize_session=False)
-    return updated_stock
+    if stock.created_by != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized.")
+    stock_query.update(updated_stock.dict(), synchronize_session=False)
+    return stock_query.first()

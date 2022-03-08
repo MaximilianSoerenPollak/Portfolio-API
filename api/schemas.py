@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 
 class StockBase(BaseModel):
@@ -29,12 +29,10 @@ class StockBase(BaseModel):
 
 
 class StockCreate(StockBase):
-
-    created_by = Optional[int]
+    pass
 
     class Config:
         orm_mode = True
-        arbitrary_types_allowed = True
 
 
 class StockResponse(StockBase):
@@ -79,3 +77,12 @@ class PortfolioCreate(BaseModel):
     name: str
     dividends_goal: Optional[float]
     monetary_goal: Optional[float]
+
+
+class PortfolioResponse(PortfolioCreate):
+    id: int
+    created_at: datetime
+    stocks: List[StockResponse]
+
+    class Config:
+        orm_mode = True
