@@ -34,4 +34,20 @@ def get_portfolio(id: int, response: Response, db: Session = Depends(get_db)):
     return portfolio
 
 
-# TODO figure out how to add stocks (as lists) to portfolios.
+@router.delete("/{portfolio_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_portfolio(
+    portfolio_id: int,
+    response: Response,
+    db: Session = Depends(get_db),
+    current_user: int = Depends(oauth2.get_current_user),
+):
+    portfolio_query = db.query(models.Portfolio).filter(models.Portfolio.id == portfolio_id)
+    portfolio = portfolio_query.first()
+    if not portfolio:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, details=f"No portfolio with id: {id} found.")
+    if portfolio.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized.")
+    portfolio_query.delete(synchronize_session=False)
+    db.commit()
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

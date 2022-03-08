@@ -41,7 +41,7 @@ class Stock(Base):
     status = Column(Integer, nullable=False, server_default="0")
     created_by = Column(Integer, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
-    # updated_at
+    updated_at = Column(TIMESTAMP(timezone=True), nullable=True, onupdate=text("now()"))
     portfolios = relationship("Portfolio", secondary=PortfolioStocks.__table__, back_populates="stocks")
 
 
