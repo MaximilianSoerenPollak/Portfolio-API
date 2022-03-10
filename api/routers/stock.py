@@ -55,8 +55,8 @@ def create_stock(
     new_stock = models.Stock(created_by=current_user.id, **stock.dict())
     db.add(new_stock)
     db.commit()
-    db.refresh(stock)
-    return stock
+    db.refresh(new_stock)
+    return new_stock
 
 
 @router.get("/{id}", response_model=schemas.StockResponse)
@@ -82,7 +82,7 @@ def delete_stock(id: int, db: Session = Depends(get_db), current_user: int = Dep
 
 
 @router.put("/{id}", response_model=schemas.StockResponse)
-def update_stock(
+def update_stock_manually(
     id: int,
     updated_stock: schemas.StockCreate,
     db: Session = Depends(get_db),

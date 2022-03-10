@@ -6,7 +6,7 @@ from typing import List
 
 router = APIRouter(prefix="/portfolios", tags=["portfolios"])
 
-
+# ,
 @router.get("/", response_model=List[schemas.PortfolioResponse])
 def get_all_portfolios(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     portfolios = db.query(models.Portfolio).filter(models.Portfolio.user_id == current_user.id).all()

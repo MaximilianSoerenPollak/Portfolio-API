@@ -5,10 +5,10 @@ from sqlalchemy.sql.expression import text
 from sqlalchemy.orm import relationship
 
 
-class PortfolioStocks(Base):
-    __tablename__ = "portfolio_stocks"
+class PortfolioStocksAssociation(Base):
+    __tablename__ = "portfolio_stock_association"
     id = Column(Integer, primary_key=True)
-    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"))
+    stock_id = Column(Integer, ForeignKey("portfoliostock.id", ondelete="CASCADE"))
     portfolio_id = Column(Integer, ForeignKey("portfolios.id", ondelete="CASCADE"))
 
 
@@ -43,6 +43,15 @@ class Stock(Base):
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
     updated_at = Column(TIMESTAMP(timezone=True), nullable=True, onupdate=text("now()"))
     portfolios = relationship("Portfolio", secondary=PortfolioStocks.__table__, back_populates="stocks")
+
+
+# class PortfolioStock(Base):
+#     __tablename__ = "portfolio_stocks"
+
+#     id = Column(Integer, primary_key=True, nullable=False)
+#     stock_id = Column(Integer, ForeignKey("stock.id", ondelete="CASCADE"))
+#     count = Column(Integer, nullable=True)
+#     buy_in = Column(Float, nullable=True)
 
 
 class User(Base):

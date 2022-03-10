@@ -10,6 +10,8 @@ url_nasdaq = "https://api.nasdaq.com/api/screener/stocks?exchange=NASDAQ&downloa
 url_nyse = "https://api.nasdaq.com/api/screener/stocks?exchange=NYSE&download=true&limit=10"
 # %%
 # This function currently only works for NASDAQ and NYSE URLs. Has to be modified if others are introduced.
+
+
 def get_tickers(url):
     headers = {
         """User-Agent": "Mozilla/5.0 (X11; CrOS x86_64 12871.102.0) AppleWebKit/537.36 (KHTML, like Gecko) 
@@ -130,18 +132,36 @@ def make_csv(df, filename, path):
 
 
 # %%
-# testing with just one atm. If this works then we are good
-# TODO test if it works with both stock lists.
-# TODO make
-def main():
+def make_nyse_df():
     nyse_tickers_df = get_tickers(url_nyse)
     # nasdaq_tickers_df = get_tickers(url_nasdaq)
     ticker_list_nyse = make_ticker_list(nyse_tickers_df)
     nyse_dict, invalid_tickers = get_stock_data(ticker_list_nyse)
     new_ticker_list_nyse = make_ticker_list(nyse_tickers_df, invalid_tickers)
     nyse_df = make_df(nyse_dict, new_ticker_list_nyse)
-    make_csv(nyse_df, "nyse_1st_try.csv", "")
+    return nyse_df
+
+
+# %%
+def make_nasdaq_df():
+    nasdaq_tickers_df = get_tickers(url_nasdaq)
+    ticker_list_nasdaq = make_ticker_list(nasdaq_tickers_df)
+    nasdaq_dict, invalid_tickers = get_stock_data(ticker_list_nasdaq)
+    new_ticker_list_nasdaq = make_ticker_list(nasdaq_tickers_df, invalid_tickers)
+    nasdaq_df = make_df(nasdaq_dict, new_ticker_list_nasdaq)
+    return nasdaq_df
+
+
+# %%
+# testing with just one atm. If this works then we are good
+# TODO make
+def main():
+    nyse_df = make_nyse_df()
+    nasdaq_df = make_nasdaq_df()
+    return nyse_df, nasdaq_df
 
 
 # # # %%
+# %%
+
 # %%
