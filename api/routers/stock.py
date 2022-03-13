@@ -1,14 +1,14 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from .. import models, schemas, oauth2
 from ..database import get_db
-from typing import List, Optional
+from typing import List, Optional, Union
 
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 
-
-@router.get("/", response_model=List[schemas.StockResponse])
+# ,
+@router.get("/", response_model=List[schemas.StockResponseSolo])
 def get_stocks(
     db: Session = Depends(get_db),
     current_user: int = Depends(oauth2.get_current_user),
@@ -40,13 +40,45 @@ def get_stocks(
     return query.limit(limit).offset(skip).all()
 
 
-@router.get("/user", response_model=List[schemas.StockResponse])
+@router.get("/portfolios", response_model=List[schemas.StockSchema])
+def get_stocks_with_portoflio(
+    db: Session = Depends(get_db),
+    current_user: int = Depends(oauth2.get_current_user),
+    limit: int = 100,
+    skip: int = 0,
+    name_search: Optional[str] = None,
+    ticker_search: Optional[str] = None,
+    sector_search: Optional[str] = None,
+    industry_search: Optional[str] = None,
+    price: Optional[float] = None,
+    dividends: Optional[float] = None,
+    dividend_yield: Optional[float] = None,
+):
+    query = db.query(models.Stock)
+    if name_search is not None:
+        query = query.filter(models.Stock.name.contains(name_search))
+    if ticker_search is not None:
+        query = query.filter(models.Stock.ticker.contains(ticker_search))
+    if sector_search is not None:
+        query = query.filter(models.Stock.sector.contains(sector_search))
+    if industry_search is not None:
+        query = query.filter(models.Stock.industry.contains(industry_search))
+    if price is not None:
+        query = query.filter(models.Stock.price <= price)
+    if dividends is not None:
+        query = query.filter(models.Stock.dividends >= dividends)
+    if dividend_yield is not None:
+        query = query.filter(models.Stock.dividend_yield >= dividend_yield)
+    return query.limit(limit).offset(skip).all()
+
+
+@router.get("/user", response_model=List[schemas.StockResponseSolo])
 def get_user_stocks(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     stocks = db.query(models.Stock).filter(models.Stock.created_by == current_user.id).all()
     return stocks
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.StockResponse)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.StockResponseSolo)
 def create_stock(
     stock: schemas.StockCreate,
     db: Session = Depends(get_db),
@@ -59,7 +91,7 @@ def create_stock(
     return new_stock
 
 
-@router.get("/{id}", response_model=schemas.StockResponse)
+@router.get("/{id}", response_model=schemas.StockResponseSolo)
 def get_stock(id: int, response: Response, db: Session = Depends(get_db)):
     stock = db.query(models.Stock).filter(models.Stock.id == id).first()
     if not stock:
@@ -81,13 +113,14 @@ def delete_stock(id: int, db: Session = Depends(get_db), current_user: int = Dep
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.put("/{id}", response_model=schemas.StockResponse)
+@router.put("/{id}", response_model=schemas.StockResponseSolo)
 def update_stock_manually(
     id: int,
     updated_stock: schemas.StockCreate,
     db: Session = Depends(get_db),
     current_user: int = Depends(oauth2.get_current_user),
 ):
+    print(updated_stock.website)
     stock_query = db.query(models.Stock).filter(models.Stock.id == id)
     stock = stock_query.first()
     if stock is None:
@@ -95,10 +128,11 @@ def update_stock_manually(
     if stock.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized.")
     stock_query.update(updated_stock.dict(), synchronize_session=False)
+    db.commit()
     return stock_query.first()
 
 
-@router.post("/add/{portfolio_id}", response_model=schemas.PortfolioResponse)
+@router.post("/add/{portfolio_id}", response_model=List[Union[schemas.PortfolioSchema, schemas.PortfolioResponse]])
 def add_stock_to_portfolio(portfolio_id: int, stock_ids: List[int], response: Response, db: Session = Depends(get_db)):
     portfolio = db.query(models.Portfolio).filter(models.Portfolio.id == portfolio_id).first()
     if portfolio is None:
@@ -108,8 +142,15 @@ def add_stock_to_portfolio(portfolio_id: int, stock_ids: List[int], response: Re
         if stock is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No stock with id: {id} found.")
             continue
+        for stock in portfolio.stocks:
+            if stock.stock_id in stock_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Stock with id: {id} already in Portfolio."
+                )
+                continue
         portfolio.stocks.append(stock)
         setattr(stock, "status", "1")
+    # breakpoint()
     db.add(portfolio)
     db.commit()
     db.refresh(portfolio)
