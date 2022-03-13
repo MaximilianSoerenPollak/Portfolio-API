@@ -7,14 +7,21 @@ from typing import List, Union
 router = APIRouter(prefix="/portfolios", tags=["portfolios"])
 
 
-@router.get("/", response_model=List[Union[schemas.PortfolioSchema, schemas.PortfolioResponse]])
+@router.get("/", response_model=List[schemas.PortfolioSchema])
 def get_all_portfolios(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+
     results = (
         db.query(models.Portfolio)
         .options(joinedload(models.Portfolio.stocks).options(joinedload(models.PortfolioStock.stock)))
         .all()
     )
+    # breakpoint()
     return results
+
+
+# Everything the validation model does not see seems to be in
+# results[0]stocks[0].stock
+# (so it somehow can't see that it has to validate the single instances of the list of stocks in the stock list)
 
 
 @router.post("/", response_model=schemas.PortfolioResponse, status_code=status.HTTP_201_CREATED)

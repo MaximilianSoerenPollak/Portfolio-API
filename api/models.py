@@ -85,40 +85,6 @@ class PortfolioStock(Base):
     stock = relationship(Stock, back_populates="portfolios")
     portfolio = relationship(Portfolio, back_populates="stocks")
 
-    # proxies
-
-    stock_name = association_proxy(target_collection="stock", attr="name")
-    stock_ticker = association_proxy(target_collection="stock", attr="ticker")
-    stock_yahoo_ticker = association_proxy(target_collection="stock", attr="yahoo_ticker")
-    stock_exchange = association_proxy(target_collection="stock", attr="exchange")
-    stock_sector = association_proxy(target_collection="stock", attr="sector")
-    stock_industry = association_proxy(target_collection="stock", attr="industry")
-    stock_long_business_summary = association_proxy(target_collection="stock", attr="long_business_summary")
-    stock_country = association_proxy(target_collection="stock", attr="country")
-    stock_website = association_proxy(target_collection="stock", attr="website")
-    stock_price = association_proxy(target_collection="stock", attr="price")
-    stock_marketcap = association_proxy(target_collection="stock", attr="marketcap")
-    stock_dividends = association_proxy(target_collection="stock", attr="dividends")
-    stock_dividend_yield = association_proxy(target_collection="stock", attr="dividend_yield")
-    stock_ex_dividend_date = association_proxy(target_collection="stock", attr="ex_dividend_date")
-    stock_beta = association_proxy(target_collection="stock", attr="beta")
-    stock_fifty_two_week_high = association_proxy(target_collection="stock", attr="fifty_two_week_high")
-    stock_fifty_two_week_low = association_proxy(target_collection="stock", attr="fifty_two_week_low")
-    stock_fifty_day_avg = association_proxy(target_collection="stock", attr="fifty_day_avg")
-    stock_recommendation = association_proxy(target_collection="stock", attr="recommendation")
-    stock_total_cash_per_share = association_proxy(target_collection="stock", attr="total_cash_per_share")
-    stock_profit_margins = association_proxy(target_collection="stock", attr="profit_margins")
-    stock_volume = association_proxy(target_collection="stock", attr="volume")
-    stock_status = association_proxy(target_collection="stock", attr="status")
-    stock_created_by = association_proxy(target_collection="stock", attr="created_by")
-    stock_created_at = association_proxy(target_collection="stock", attr="created_at")
-
-    # proxy portfolio
-    portfolio_name = association_proxy(target_collection="portfolio", attr="name")
-    portfolio_monetary_goal = association_proxy(target_collection="portfolio", attr="monetary_goal")
-    portfolio_dividends_goal = association_proxy(target_collection="portfolio", attr="dividends_goal")
-    portfolio_created_at = association_proxy(target_collection="portfolio", attr="created_at")
-
     def __init__(self, portfolio=None, stock=None, buy_in=None, count=None):
         self.portfolio = portfolio
         self.stock = stock
