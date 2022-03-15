@@ -17,6 +17,23 @@ instead of stocks_included it tries to search for portfolio. Which gives a keyer
 """
 
 
+class PortfolioStock(Base):
+    __tablename__ = "portfolio_stocks"
+    id = Column(Integer, primary_key=True)
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"))
+    portfolio_id = Column(Integer, ForeignKey("portfolios.id", ondelete="CASCADE"))
+    count = Column(Integer, nullable=True)
+    buy_in = Column(Float, nullable=True)
+    stock = relationship("Stock", back_populates="portfolios")
+    portfolio = relationship("Portfolio", back_populates="stocks")
+
+    # def __init__(self, portfolio=None, stock=None, buy_in=None, count=None):
+    #     self.portfolio = portfolio
+    #     self.stock = stock
+    #     self.buy_in = buy_in
+    #     self.count = count
+
+
 class Stock(Base):
     __tablename__ = "stocks"
 
@@ -47,8 +64,8 @@ class Stock(Base):
     created_by = Column(Integer, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
     updated_at = Column(TIMESTAMP(timezone=True), nullable=True, onupdate=text("now()"))
+    # portfolios = association_proxy("portfolio_stocks", "portfolio", creator=lambda port: PortfolioStock(portfolio=port))
     portfolios = relationship("PortfolioStock", back_populates="stock")
-
     # test
 
 
@@ -71,22 +88,6 @@ class Portfolio(Base):
     dividends_goal = Column(Float, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
     stocks = relationship("PortfolioStock", back_populates="portfolio")
-    # updated at.
+    # updated a.
     # proxy This is neccessary so that we can append stocks to the portfolio
-
-
-class PortfolioStock(Base):
-    __tablename__ = "portfolio_stocks"
-    id = Column(Integer, primary_key=True)
-    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"))
-    portfolio_id = Column(Integer, ForeignKey("portfolios.id", ondelete="CASCADE"))
-    count = Column(Integer, nullable=True)
-    buy_in = Column(Float, nullable=True)
-    stock = relationship(Stock, back_populates="portfolios")
-    portfolio = relationship(Portfolio, back_populates="stocks")
-
-    def __init__(self, portfolio=None, stock=None, buy_in=None, count=None):
-        self.portfolio = portfolio
-        self.stock = stock
-        self.buy_in = buy_in
-        self.count = count
+    # stocks = association_proxy("portfolio_stocks_temp", "stock")

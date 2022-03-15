@@ -35,24 +35,6 @@ class TokenData(BaseModel):
     id: Optional[str]
 
 
-# --- Portfolio ---
-class PortfolioCreate(BaseModel):
-    name: str
-    dividends_goal: Optional[float]
-    monetary_goal: Optional[float]
-
-    class Config:
-        orm_mode = True
-
-
-class PortfolioResponse(PortfolioCreate):
-    id: int
-    created_at: datetime
-
-    class Config:
-        orm_mode = True
-
-
 # --- Stock ---
 
 
@@ -98,11 +80,11 @@ class StockCreate(StockBase):
         orm_mode = True
 
 
-class StockResponsePortfolioInc(StockBase):
-    portfolios: Optional[List[PortfolioResponse]]
+# class StockResponsePortfolioInc(StockBase):
+#     portfolios: Optional[List[PortfolioResponse]]
 
-    class Config:
-        orm_mode = True
+#     class Config:
+#         orm_mode = True
 
 
 class StockResponseInsidePortfolio(StockResponseSolo):
@@ -114,12 +96,29 @@ class StockResponseInsidePortfolio(StockResponseSolo):
         validate_assignment = True
 
 
+class PortfolioCreate(BaseModel):
+    name: str
+    dividends_goal: Optional[float]
+    monetary_goal: Optional[float]
+
+    class Config:
+        orm_mode = True
+
+
+class PortfolioResponse(PortfolioCreate):
+    id: int
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
 class StockSchema(StockResponseSolo):
     portfolios: List[PortfolioResponse]
 
 
 class PortfolioSchema(PortfolioResponse):
-    stocks: List[List[StockResponseInsidePortfolio]]
+    stocks: List[StockResponseInsidePortfolio]
 
     class Config:
         orm_mode = True

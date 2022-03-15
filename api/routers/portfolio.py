@@ -1,27 +1,38 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, contains_eager
 from .. import models, schemas, oauth2, utils
 from ..database import get_db
 from typing import List, Union
+from fastapi.encoders import jsonable_encoder
+import pandas as pd
+from sqlalchemy.orm import class_mapper
 
 router = APIRouter(prefix="/portfolios", tags=["portfolios"])
 
 
-@router.get("/", response_model=List[schemas.PortfolioSchema])
+@router.get("/")
 def get_all_portfolios(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+    #!TODO convert this to SQL. IT WORKS LEAVE IT (for now)
 
     results = (
         db.query(models.Portfolio)
-        .options(joinedload(models.Portfolio.stocks).options(joinedload(models.PortfolioStock.stock)))
+        .options(joinedload(models.Portfolio.stocks).joinedload(models.PortfolioStock.stock))
         .all()
     )
-    # breakpoint()
-    return results
-
-
-# Everything the validation model does not see seems to be in
-# results[0]stocks[0].stock
-# (so it somehow can't see that it has to validate the single instances of the list of stocks in the stock list)
+    result_list = []
+    for portfolio in results:
+        result_dict = portfolio.__dict__
+        stock_list = []
+        for sto in result_dict["stocks"]:
+            sto_dict = sto.__dict__
+            temp_sto = {}
+            temp_sto = sto_dict["stock"]
+            setattr(temp_sto, "buy_in", sto_dict["buy_in"])
+            setattr(temp_sto, "count", sto_dict["count"])
+            stock_list.append(temp_sto)
+        result_dict["stocks"] = stock_list
+        result_list.append(result_dict)
+    return result_list
 
 
 @router.post("/", response_model=schemas.PortfolioResponse, status_code=status.HTTP_201_CREATED)

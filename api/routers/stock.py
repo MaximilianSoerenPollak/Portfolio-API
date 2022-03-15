@@ -1,7 +1,7 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session, joinedload
 from .. import models, schemas, oauth2
-from ..database import get_db
+from ..database import get_db, engine
 from typing import List, Optional, Union
 
 
@@ -10,38 +10,6 @@ router = APIRouter(prefix="/stocks", tags=["stocks"])
 # ,
 @router.get("/", response_model=List[schemas.StockResponseSolo])
 def get_stocks(
-    db: Session = Depends(get_db),
-    current_user: int = Depends(oauth2.get_current_user),
-    limit: int = 100,
-    skip: int = 0,
-    name_search: Optional[str] = None,
-    ticker_search: Optional[str] = None,
-    sector_search: Optional[str] = None,
-    industry_search: Optional[str] = None,
-    price: Optional[float] = None,
-    dividends: Optional[float] = None,
-    dividend_yield: Optional[float] = None,
-):
-    query = db.query(models.Stock)
-    if name_search is not None:
-        query = query.filter(models.Stock.name.contains(name_search))
-    if ticker_search is not None:
-        query = query.filter(models.Stock.ticker.contains(ticker_search))
-    if sector_search is not None:
-        query = query.filter(models.Stock.sector.contains(sector_search))
-    if industry_search is not None:
-        query = query.filter(models.Stock.industry.contains(industry_search))
-    if price is not None:
-        query = query.filter(models.Stock.price <= price)
-    if dividends is not None:
-        query = query.filter(models.Stock.dividends >= dividends)
-    if dividend_yield is not None:
-        query = query.filter(models.Stock.dividend_yield >= dividend_yield)
-    return query.limit(limit).offset(skip).all()
-
-
-@router.get("/portfolios", response_model=List[schemas.StockSchema])
-def get_stocks_with_portoflio(
     db: Session = Depends(get_db),
     current_user: int = Depends(oauth2.get_current_user),
     limit: int = 100,
@@ -120,7 +88,6 @@ def update_stock_manually(
     db: Session = Depends(get_db),
     current_user: int = Depends(oauth2.get_current_user),
 ):
-    print(updated_stock.website)
     stock_query = db.query(models.Stock).filter(models.Stock.id == id)
     stock = stock_query.first()
     if stock is None:
@@ -142,16 +109,18 @@ def add_stock_to_portfolio(portfolio_id: int, stock_ids: List[int], response: Re
         if stock is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No stock with id: {id} found.")
             continue
-        for stock in portfolio.stocks:
-            if stock.stock_id in stock_ids:
+        for stock_model in portfolio.stocks:
+            if stock_model.id in stock_ids:
                 raise HTTPException(
                     status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Stock with id: {id} already in Portfolio."
                 )
                 continue
-        portfolio.stocks.append(stock)
+        for stock_id in stock_ids:
+            query = """INSERT INTO portfolio_stocks (stock_id, portfolio_id) VALUES ({}, {})""".format(
+                stock_id, portfolio_id
+            )
+            db.execute(query)
+            db.commit()
         setattr(stock, "status", "1")
-    # breakpoint()
-    db.add(portfolio)
-    db.commit()
     db.refresh(portfolio)
     return portfolio
