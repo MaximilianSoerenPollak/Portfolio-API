@@ -1,16 +1,38 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
-from sqlalchemy.orm import Session
-from .. import models, schemas, oauth2
+from sqlalchemy.orm import Session, joinedload, contains_eager
+from .. import models, schemas, oauth2, utils
 from ..database import get_db
-from typing import List
+from typing import List, Union
+from fastapi.encoders import jsonable_encoder
+import pandas as pd
+from sqlalchemy.orm import class_mapper
 
 router = APIRouter(prefix="/portfolios", tags=["portfolios"])
 
-# ,
-@router.get("/", response_model=List[schemas.PortfolioResponse])
+
+@router.get("/")
 def get_all_portfolios(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
-    portfolios = db.query(models.Portfolio).filter(models.Portfolio.user_id == current_user.id).all()
-    return portfolios
+    #!TODO convert this to SQL. IT WORKS LEAVE IT (for now)
+
+    results = (
+        db.query(models.Portfolio)
+        .options(joinedload(models.Portfolio.stocks).joinedload(models.PortfolioStock.stock))
+        .all()
+    )
+    result_list = []
+    for portfolio in results:
+        result_dict = portfolio.__dict__
+        stock_list = []
+        for sto in result_dict["stocks"]:
+            sto_dict = sto.__dict__
+            temp_sto = {}
+            temp_sto = sto_dict["stock"]
+            setattr(temp_sto, "buy_in", sto_dict["buy_in"])
+            setattr(temp_sto, "count", sto_dict["count"])
+            stock_list.append(temp_sto)
+        result_dict["stocks"] = stock_list
+        result_list.append(result_dict)
+    return result_list
 
 
 @router.post("/", response_model=schemas.PortfolioResponse, status_code=status.HTTP_201_CREATED)
@@ -26,7 +48,7 @@ def create_portfolio(
     return new_portfolio
 
 
-@router.get("/{id}", response_model=schemas.PortfolioResponse)
+@router.get("/{id}", response_model=List[Union[schemas.PortfolioSchema, schemas.PortfolioResponse]])
 def get_portfolio(id: int, response: Response, db: Session = Depends(get_db)):
     portfolio = db.query(models.Portfolio).filter(models.Portfolio.id == id).first()
     if not portfolio:

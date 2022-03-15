@@ -2,21 +2,43 @@ from .database import Base
 from sqlalchemy import Column, Integer, String, Float, Date, BigInteger, Text, ForeignKey
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
+from sqlalchemy.ext.associationproxy import association_proxy
+
+"""
+You still have to figure out why there is a "key error" when you try to make a new row in the associaiton table.
+YOu have tried almost everything. It seems that the function can not resolve the backref of Portfolio table so it seems 
+to call the clolumn that is menitoned there instead.
 
 
-class PortfolioStocksAssociation(Base):
-    __tablename__ = "portfolio_stock_association"
+    stocks_included = relationship("PortfolioStock", back_populates="portfolio")
+
+instead of stocks_included it tries to search for portfolio. Which gives a keyerror.
+"""
+
+
+class PortfolioStock(Base):
+    __tablename__ = "portfolio_stocks"
     id = Column(Integer, primary_key=True)
-    stock_id = Column(Integer, ForeignKey("portfoliostock.id", ondelete="CASCADE"))
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"))
     portfolio_id = Column(Integer, ForeignKey("portfolios.id", ondelete="CASCADE"))
+    count = Column(Integer, nullable=True)
+    buy_in = Column(Float, nullable=True)
+    stock = relationship("Stock", back_populates="portfolios")
+    portfolio = relationship("Portfolio", back_populates="stocks")
+
+    # def __init__(self, portfolio=None, stock=None, buy_in=None, count=None):
+    #     self.portfolio = portfolio
+    #     self.stock = stock
+    #     self.buy_in = buy_in
+    #     self.count = count
 
 
 class Stock(Base):
     __tablename__ = "stocks"
 
     id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String, nullable=False)
+    name = Column(String, nullable=False, unique=True)
     ticker = Column(String)
     yahoo_ticker = Column(String, nullable=False)
     exchange = Column(String(255), nullable=True)
@@ -42,16 +64,9 @@ class Stock(Base):
     created_by = Column(Integer, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
     updated_at = Column(TIMESTAMP(timezone=True), nullable=True, onupdate=text("now()"))
-    portfolios = relationship("Portfolio", secondary=PortfolioStocks.__table__, back_populates="stocks")
-
-
-# class PortfolioStock(Base):
-#     __tablename__ = "portfolio_stocks"
-
-#     id = Column(Integer, primary_key=True, nullable=False)
-#     stock_id = Column(Integer, ForeignKey("stock.id", ondelete="CASCADE"))
-#     count = Column(Integer, nullable=True)
-#     buy_in = Column(Float, nullable=True)
+    # portfolios = association_proxy("portfolio_stocks", "portfolio", creator=lambda port: PortfolioStock(portfolio=port))
+    portfolios = relationship("PortfolioStock", back_populates="stock")
+    # test
 
 
 class User(Base):
@@ -72,5 +87,7 @@ class Portfolio(Base):
     monetary_goal = Column(Float, nullable=True)
     dividends_goal = Column(Float, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
-    # updated_at
-    stocks = relationship("Stock", secondary=PortfolioStocks.__table__, back_populates="portfolios")
+    stocks = relationship("PortfolioStock", back_populates="portfolio")
+    # updated a.
+    # proxy This is neccessary so that we can append stocks to the portfolio
+    # stocks = association_proxy("portfolio_stocks_temp", "stock")

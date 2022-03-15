@@ -1,14 +1,14 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from .. import models, schemas, oauth2
-from ..database import get_db
-from typing import List, Optional
+from ..database import get_db, engine
+from typing import List, Optional, Union
 
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 
-
-@router.get("/", response_model=List[schemas.StockResponse])
+# ,
+@router.get("/", response_model=List[schemas.StockResponseSolo])
 def get_stocks(
     db: Session = Depends(get_db),
     current_user: int = Depends(oauth2.get_current_user),
@@ -40,13 +40,13 @@ def get_stocks(
     return query.limit(limit).offset(skip).all()
 
 
-@router.get("/user", response_model=List[schemas.StockResponse])
+@router.get("/user", response_model=List[schemas.StockResponseSolo])
 def get_user_stocks(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     stocks = db.query(models.Stock).filter(models.Stock.created_by == current_user.id).all()
     return stocks
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.StockResponse)
+@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.StockResponseSolo)
 def create_stock(
     stock: schemas.StockCreate,
     db: Session = Depends(get_db),
@@ -59,7 +59,7 @@ def create_stock(
     return new_stock
 
 
-@router.get("/{id}", response_model=schemas.StockResponse)
+@router.get("/{id}", response_model=schemas.StockResponseSolo)
 def get_stock(id: int, response: Response, db: Session = Depends(get_db)):
     stock = db.query(models.Stock).filter(models.Stock.id == id).first()
     if not stock:
@@ -81,7 +81,7 @@ def delete_stock(id: int, db: Session = Depends(get_db), current_user: int = Dep
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.put("/{id}", response_model=schemas.StockResponse)
+@router.put("/{id}", response_model=schemas.StockResponseSolo)
 def update_stock_manually(
     id: int,
     updated_stock: schemas.StockCreate,
@@ -95,10 +95,11 @@ def update_stock_manually(
     if stock.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized.")
     stock_query.update(updated_stock.dict(), synchronize_session=False)
+    db.commit()
     return stock_query.first()
 
 
-@router.post("/add/{portfolio_id}", response_model=schemas.PortfolioResponse)
+@router.post("/add/{portfolio_id}", response_model=List[Union[schemas.PortfolioSchema, schemas.PortfolioResponse]])
 def add_stock_to_portfolio(portfolio_id: int, stock_ids: List[int], response: Response, db: Session = Depends(get_db)):
     portfolio = db.query(models.Portfolio).filter(models.Portfolio.id == portfolio_id).first()
     if portfolio is None:
@@ -108,9 +109,18 @@ def add_stock_to_portfolio(portfolio_id: int, stock_ids: List[int], response: Re
         if stock is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No stock with id: {id} found.")
             continue
-        portfolio.stocks.append(stock)
+        for stock_model in portfolio.stocks:
+            if stock_model.id in stock_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Stock with id: {id} already in Portfolio."
+                )
+                continue
+        for stock_id in stock_ids:
+            query = """INSERT INTO portfolio_stocks (stock_id, portfolio_id) VALUES ({}, {})""".format(
+                stock_id, portfolio_id
+            )
+            db.execute(query)
+            db.commit()
         setattr(stock, "status", "1")
-    db.add(portfolio)
-    db.commit()
     db.refresh(portfolio)
     return portfolio

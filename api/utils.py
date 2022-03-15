@@ -1,4 +1,6 @@
 from passlib.context import CryptContext
+from sqlalchemy import inspect
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
