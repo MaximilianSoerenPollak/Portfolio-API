@@ -27,19 +27,13 @@ class PortfolioStock(Base):
     stock = relationship("Stock", back_populates="portfolios")
     portfolio = relationship("Portfolio", back_populates="stocks")
 
-    # def __init__(self, portfolio=None, stock=None, buy_in=None, count=None):
-    #     self.portfolio = portfolio
-    #     self.stock = stock
-    #     self.buy_in = buy_in
-    #     self.count = count
-
 
 class Stock(Base):
     __tablename__ = "stocks"
 
     id = Column(Integer, primary_key=True, nullable=False)
     name = Column(String, nullable=False, unique=True)
-    ticker = Column(String)
+    ticker = Column(String, nullable=False)
     yahoo_ticker = Column(String, nullable=False)
     exchange = Column(String(255), nullable=True)
     sector = Column(String(255), nullable=True)
@@ -61,12 +55,10 @@ class Stock(Base):
     profit_margins = Column(Float, nullable=True)
     volume = Column(BigInteger, nullable=True)
     status = Column(Integer, nullable=False, server_default="0")
-    created_by = Column(Integer, nullable=False)
+    created_by = Column(Integer, nullable=False, default="0")
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
     updated_at = Column(TIMESTAMP(timezone=True), nullable=True, onupdate=text("now()"))
-    # portfolios = association_proxy("portfolio_stocks", "portfolio", creator=lambda port: PortfolioStock(portfolio=port))
     portfolios = relationship("PortfolioStock", back_populates="stock")
-    # test
 
 
 class User(Base):
@@ -88,6 +80,3 @@ class Portfolio(Base):
     dividends_goal = Column(Float, nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, server_default=text("now()"))
     stocks = relationship("PortfolioStock", back_populates="portfolio")
-    # updated a.
-    # proxy This is neccessary so that we can append stocks to the portfolio
-    # stocks = association_proxy("portfolio_stocks_temp", "stock")

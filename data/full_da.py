@@ -2,6 +2,10 @@
 import pandas as pd
 import requests
 import yahooquery as yq
+import os
+
+
+basedir = os.path.dirname(os.path.abspath(__file__))
 
 # %%
 # TODO EUronext still does not work. For now I will download the csv manually but it should somehow be fixed in the future
@@ -64,6 +68,7 @@ def make_data_list(dictionary, ticker_list, upperdict, lowerdict):
         "totalCashPerShare",
         "profitMargins",
         "volume",
+        "beta",
     ]
     for ticker in ticker_list:
         try:
@@ -97,12 +102,13 @@ def make_df(dictionary, ticker_list):
         "country": ["summaryProfile", "country"],
         "website": ["summaryProfile", "website"],
         "price": ["financialData", "currentPrice"],
+        "beta": ["summaryProfile", "beta"],
         "marketcap": ["summaryDetail", "marketCap"],
         "dividends": ["summaryDetail", "dividendRate"],
         "ex_dividend_date": ["summaryDetail", "exDividendDate"],
-        "fiftytwo_week_high": ["summaryDetail", "fiftyTwoWeekHigh"],
-        "fiftytwo_week_low": ["summaryDetail", "fiftyTwoWeekLow"],
-        "fifty_day_avgerage": ["summaryDetail", "fiftyDayAverage"],
+        "fifty_two_week_high": ["summaryDetail", "fiftyTwoWeekHigh"],
+        "fifty_two_week_low": ["summaryDetail", "fiftyTwoWeekLow"],
+        "fifty_day_avg": ["summaryDetail", "fiftyDayAverage"],
         "recommendation": ["financialData", "recommendationKey"],
         "total_cash_per_share": ["financialData", "totalCashPerShare"],
         "profit_margins": ["financialData", "profitMargins"],
@@ -113,6 +119,33 @@ def make_df(dictionary, ticker_list):
         stock_df[k] = make_data_list(dictionary, ticker_list, v[0], v[1])
     stock_df["dividend_yield"] = stock_df["dividends"].divide(stock_df["price"], fill_value=0)
     stock_df["yahoo_ticker"] = stock_df["ticker"]
+    stock_df[["dividend_yield", "profit_margins"]] = stock_df[["dividend_yield", "profit_margins"]].round(decimals=4)
+    stock_df["fifty_day_avg"] = stock_df["fifty_day_avg"].round(decimals=2)
+    new_column_order = [
+        "name",
+        "ticker",
+        "yahoo_ticker",
+        "exchange",
+        "sector",
+        "industry",
+        "long_business_summary",
+        "country",
+        "website",
+        "price",
+        "marketcap",
+        "dividends",
+        "dividend_yield",
+        "ex_dividend_date",
+        "beta",
+        "fifty_two_week_high",
+        "fifty_two_week_low",
+        "fifty_day_avg",
+        "recommendation",
+        "total_cash_per_share",
+        "profit_margins",
+        "volume",
+    ]
+    stock_df = stock_df[new_column_order]
     return stock_df
 
 
@@ -133,9 +166,12 @@ def make_df_final(exchange):
 
 
 # %%
-def main():
+def main(save: bool = False, date: str = None):
     nyse_df = make_df_final(url_nyse)
     nasdaq_df = make_df_final(url_nasdaq)
+    if save:
+        make_csv(df=nyse_df, filename=("nyse" + date + ".csv"), path=basedir + "/backup_csv/")
+        make_csv(df=nasdaq_df, filename=("nasdaq" + date + ".csv"), path=basedir + "/backup_csv/")
     return nyse_df, nasdaq_df
 
 
