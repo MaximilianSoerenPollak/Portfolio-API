@@ -3,7 +3,8 @@ import pandas as pd
 import requests
 import yahooquery as yq
 import os
-
+import numpy as np
+import datetime as dt
 
 basedir = os.path.dirname(os.path.abspath(__file__))
 
@@ -46,7 +47,6 @@ def get_stock_data(ticker_list):
     ticker = yq.Ticker(
         ticker_list,
         asynchronous=True,
-        progress=True,
         status_forcelist=[429, 500, 502, 503, 504, 404],
         validate=True,
     )
@@ -58,34 +58,34 @@ def get_stock_data(ticker_list):
 # %%
 def make_data_list(dictionary, ticker_list, upperdict, lowerdict):
     result_list = []
-    int_dict_filter = [
+    dict_filter_float = [
         "dividendRate",
         "currentPrice",
-        "marketCap",
         "fiftyTwoWeekHigh",
         "fiftyTwoWeekLow",
         "fiftyDayAverage",
         "totalCashPerShare",
         "profitMargins",
-        "volume",
         "beta",
+    ]
+    dict_filter_int = [
+        "marketCap",
+        "volume",
     ]
     for ticker in ticker_list:
         try:
             wanted_info = dictionary[ticker][upperdict][lowerdict]
-            if lowerdict in int_dict_filter:
+            if lowerdict in dict_filter_float:
                 wanted_info = float(wanted_info)
+            if lowerdict in dict_filter_int:
+                wanted_info = int(wanted_info)
             result_list.append(wanted_info)
 
         except:
-            if lowerdict in int_dict_filter:
-                result_list.append(0)
-            else:
-                result_list.append("nan")
+            result_list.append(np.nan)
     return result_list
 
 
-# %%
 # %%
 # ! Careful. yahooticker is integrated but not made working. It is for EU and Asian stocks once those are also in the DA pipeline
 # ! Then there will be a need to rewrite yahoo_ticker BEFORE we gather the data via yahooquery (get_stock_data).
@@ -146,6 +146,22 @@ def make_df(dictionary, ticker_list):
         "volume",
     ]
     stock_df = stock_df[new_column_order]
+    stock_df.loc[stock_df["ex_dividend_date"] == "0", "ex_dividend_date"] = None
+    stock_df.loc[stock_df["ex_dividend_date"] == "{}", "ex_dividend_date"] = None
+    stock_df["ex_dividend_date"] = pd.to_datetime(stock_df["ex_dividend_date"], errors="ignore")
+    stock_df["ex_dividend_date"] = stock_df["ex_dividend_date"].dt.date
+    stock_df.ex_dividend_date.astype(object).where(stock_df.ex_dividend_date.notnull(), None)
+    stock_df["ex_dividend_date"] = stock_df["ex_dividend_date"].replace("NaT", np.nan)
+    stock_df["ex_dividend_date"].fillna(0)
+    # stock_df.loc[stock_df["ex_dividend_date"] == "0", "ex_dividend_date"] = None
+    # stock_df.loc[stock_df["ex_dividend_date"] == "{}", "ex_dividend_date"] = None
+    # stock_df.loc[stock_df["ex_dividend_date"] == "NaT", "ex_dividend_date"] = None
+    stock_df = stock_df[stock_df["name"].notna()]
+    stock_df = stock_df.replace(0, np.nan)
+    stock_df = stock_df.replace("0", None)
+    stock_df = stock_df[~stock_df["price"].isna()]
+    cols = list(stock_df.columns)
+    stock_df = stock_df.dropna(subset=cols, thresh=7)
     return stock_df
 
 
@@ -166,7 +182,7 @@ def make_df_final(exchange):
 
 
 # %%
-def main(save: bool = False, date: str = None):
+def get_all_tickers(save: bool = False, date: str = None):
     nyse_df = make_df_final(url_nyse)
     nasdaq_df = make_df_final(url_nasdaq)
     if save:
@@ -176,8 +192,7 @@ def main(save: bool = False, date: str = None):
 
 
 # %%
-# nyse_df, nasdaq_df = main()
-# make_csv(nyse_df, "nyse.csv", "/home/maxi/dev/data")
-# make_csv(nasdaq_df, "nasdaq.csv", "/home/maxi/dev/data")
-
-# %%
+def get_some_tickers(tickerlist):
+    results, invalid_tickers = get_stock_data(tickerlist)
+    results_df = make_df(results, tickerlist)
+    return results_df

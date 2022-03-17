@@ -1,9 +1,12 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session, joinedload
 from .. import models, schemas, oauth2
-from ..database import get_db, engine
+from ..database import get_db, engine, load_some_data
 from typing import List, Optional, Union
-
+from datetime import timedelta, datetime
+from sqlalchemy import update
+from pandas.io import sql
+from data.full_da import get_some_tickers
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 
@@ -59,6 +62,7 @@ def create_stock(
     return new_stock
 
 
+#! TODO need to update route route for new FK (stock.ticker)
 @router.get("/{id}", response_model=schemas.StockResponseSolo)
 def get_stock(id: int, response: Response, db: Session = Depends(get_db)):
     stock = db.query(models.Stock).filter(models.Stock.id == id).first()
@@ -67,6 +71,7 @@ def get_stock(id: int, response: Response, db: Session = Depends(get_db)):
     return stock
 
 
+#! TODO need to update route route for new FK (stock.ticker)
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_stock(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     # !Todo only admin can delete.
@@ -81,6 +86,7 @@ def delete_stock(id: int, db: Session = Depends(get_db), current_user: int = Dep
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
+#! TODO need to update route route for new FK (stock.ticker)
 @router.put("/{id}", response_model=schemas.StockResponseSolo)
 def update_stock_manually(
     id: int,
@@ -99,6 +105,7 @@ def update_stock_manually(
     return stock_query.first()
 
 
+#! TODO need to update route route for new FK (stock.ticker)
 @router.post("/add/{portfolio_id}", response_model=List[Union[schemas.PortfolioSchema, schemas.PortfolioResponse]])
 def add_stock_to_portfolio(portfolio_id: int, stock_ids: List[int], response: Response, db: Session = Depends(get_db)):
     portfolio = db.query(models.Portfolio).filter(models.Portfolio.id == portfolio_id).first()
@@ -124,3 +131,53 @@ def add_stock_to_portfolio(portfolio_id: int, stock_ids: List[int], response: Re
         setattr(stock, "status", "1")
     db.refresh(portfolio)
     return portfolio
+
+
+@router.post("/update")
+def update_stocks(tickerlist_inc: List[str], db: Session = Depends(get_db)):
+    print(tickerlist_inc)
+    refused_tickers = []
+    tickerlist = tickerlist_inc
+    for ticker in tickerlist_inc:
+        try:
+            updated_at = db.query(models.Stock.updated_at).filter(models.Stock.ticker == ticker).first()
+            if datetime.now() - timedelta(hours=5) <= updated_at or updated_at is None:
+                refused_tickers.append(ticker)
+                tickerlist.remove(ticker)
+        except:
+            pass
+    updated_results = get_some_tickers(tickerlist)
+    print(updated_results["ex_dividend_date"])
+    for index, row in updated_results.iterrows():
+        query = (
+            update(models.Stock)
+            .where(models.Stock.ticker == row["ticker"])
+            .values(
+                price=row["price"],
+                marketcap=row["marketcap"],
+                dividends=row["dividends"],
+                dividend_yield=row["dividend_yield"],
+                ex_dividend_date=row["ex_dividend_date"],
+                beta=row["beta"],
+                fifty_two_week_high=row["fifty_two_week_high"],
+                fifty_two_week_low=row["fifty_two_week_low"],
+                fifty_day_avg=row["fifty_day_avg"],
+                recommendation=row["recommendation"],
+                total_cash_per_share=row["total_cash_per_share"],
+                profit_margins=row["profit_margins"],
+                volume=row["volume"],
+            )
+        )
+        sql.execute(query, engine)
+    updated_tickers = []
+    for ticker in tickerlist:
+        ticker_queried = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
+        updated_tickers.append(ticker_queried)
+    result = {}
+    result["refused_tickers"] = {
+        "tickers": refused_tickers,
+        "reason": "These tickers have already been updated recently",
+    }
+    result["updated_tickers"] = {"tickers": updated_tickers}
+    print(result)
+    return result

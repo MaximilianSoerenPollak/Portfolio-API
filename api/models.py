@@ -20,7 +20,7 @@ instead of stocks_included it tries to search for portfolio. Which gives a keyer
 class PortfolioStock(Base):
     __tablename__ = "portfolio_stocks"
     id = Column(Integer, primary_key=True)
-    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"))
+    stock_ticker = Column(String, ForeignKey("stocks.ticker", ondelete="CASCADE"))
     portfolio_id = Column(Integer, ForeignKey("portfolios.id", ondelete="CASCADE"))
     count = Column(Integer, nullable=True)
     buy_in = Column(Float, nullable=True)
@@ -32,8 +32,8 @@ class Stock(Base):
     __tablename__ = "stocks"
 
     id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String, nullable=False, unique=True)
-    ticker = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    ticker = Column(String, nullable=False, unique=True)
     yahoo_ticker = Column(String, nullable=False)
     exchange = Column(String(255), nullable=True)
     sector = Column(String(255), nullable=True)
@@ -42,7 +42,7 @@ class Stock(Base):
     country = Column(String(255), nullable=True)
     website = Column(String(255), nullable=True)
     price = Column(Float, nullable=False)
-    marketcap = Column(Integer, nullable=True)
+    marketcap = Column(BigInteger, nullable=True)
     dividends = Column(Float, nullable=True)
     dividend_yield = Column(Float, nullable=True)
     ex_dividend_date = Column(Date, nullable=True)
