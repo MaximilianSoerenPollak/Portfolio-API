@@ -1,21 +1,19 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from .. import models, schemas, oauth2
-from ..database import get_db, engine, load_some_data
-from typing import List, Optional, Union
-from datetime import timedelta, datetime
-from sqlalchemy import update
-from pandas.io import sql
-from data.full_da import get_some_tickers
+from ..database import get_db, load_some_data
+from typing import List, Optional
+from datetime import timedelta, datetime, timezone
+from sqlalchemy import insert
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 
-# ,
+
 @router.get("/", response_model=List[schemas.StockResponseSolo])
 def get_stocks(
     db: Session = Depends(get_db),
     current_user: int = Depends(oauth2.get_current_user),
-    limit: int = 100,
+    limit: int = 10,
     skip: int = 0,
     name_search: Optional[str] = None,
     ticker_search: Optional[str] = None,
@@ -40,7 +38,7 @@ def get_stocks(
         query = query.filter(models.Stock.dividends >= dividends)
     if dividend_yield is not None:
         query = query.filter(models.Stock.dividend_yield >= dividend_yield)
-    return query.limit(limit).offset(skip).all()
+    return query.order_by(models.Stock.ticker).limit(limit).offset(skip).all()
 
 
 @router.get("/user", response_model=List[schemas.StockResponseSolo])
@@ -62,23 +60,21 @@ def create_stock(
     return new_stock
 
 
-#! TODO need to update route route for new FK (stock.ticker)
-@router.get("/{id}", response_model=schemas.StockResponseSolo)
-def get_stock(id: int, response: Response, db: Session = Depends(get_db)):
-    stock = db.query(models.Stock).filter(models.Stock.id == id).first()
+@router.get("/{ticker}", response_model=schemas.StockResponseSolo)
+def get_stock(ticker: str, response: Response, db: Session = Depends(get_db)):
+    stock = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
     if not stock:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"stock with id: {id} was not found.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"stock with ticker: {ticker} was not found.")
     return stock
 
 
-#! TODO need to update route route for new FK (stock.ticker)
-@router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_stock(id: int, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+@router.delete("/{ticker}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_stock(ticker: str, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
     # !Todo only admin can delete.
-    stock_query = db.query(models.Stock).filter(models.Stock.id == id)
+    stock_query = db.query(models.Stock).filter(models.Stock.ticker == ticker)
     stock = stock_query.first()
     if stock is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ID: {id} does not exist")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ticker: {ticker} does not exist")
     if stock.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized.")
     stock_query.delete(synchronize_session=False)
@@ -86,18 +82,19 @@ def delete_stock(id: int, db: Session = Depends(get_db), current_user: int = Dep
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-#! TODO need to update route route for new FK (stock.ticker)
-@router.put("/{id}", response_model=schemas.StockResponseSolo)
+@router.put("/{ticker}", response_model=schemas.StockResponseSolo)
 def update_stock_manually(
-    id: int,
+    ticker: str,
     updated_stock: schemas.StockCreate,
     db: Session = Depends(get_db),
     current_user: int = Depends(oauth2.get_current_user),
 ):
-    stock_query = db.query(models.Stock).filter(models.Stock.id == id)
+    stock_query = db.query(models.Stock).filter(models.Stock.ticker == ticker)
     stock = stock_query.first()
     if stock is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ID: {id} does not excist")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ticker: {ticker} does not excist"
+        )
     if stock.created_by != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized.")
     stock_query.update(updated_stock.dict(), synchronize_session=False)
@@ -105,79 +102,73 @@ def update_stock_manually(
     return stock_query.first()
 
 
-#! TODO need to update route route for new FK (stock.ticker)
-@router.post("/add/{portfolio_id}", response_model=List[Union[schemas.PortfolioSchema, schemas.PortfolioResponse]])
-def add_stock_to_portfolio(portfolio_id: int, stock_ids: List[int], response: Response, db: Session = Depends(get_db)):
+@router.post("/add/{portfolio_id}")
+def add_stock_to_portfolio(
+    portfolio_id: int, stock_tickers: List[str], response: Response, db: Session = Depends(get_db)
+):
     portfolio = db.query(models.Portfolio).filter(models.Portfolio.id == portfolio_id).first()
     if portfolio is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No portfolio with id: {id} found.")
-    for stock_id in stock_ids:
-        stock = db.query(models.Stock).filter(models.Stock.id == stock_id).first()
+    not_found_stocks = []
+    stocks_already_in_portfolio = []
+    results = {}
+    for ticker in set(stock_tickers):
+        stock = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
         if stock is None:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No stock with id: {id} found.")
-            continue
-        for stock_model in portfolio.stocks:
-            if stock_model.id in stock_ids:
-                raise HTTPException(
-                    status_code=status.HTTP_406_NOT_ACCEPTABLE, detail=f"Stock with id: {id} already in Portfolio."
-                )
-                continue
-        for stock_id in stock_ids:
-            query = """INSERT INTO portfolio_stocks (stock_id, portfolio_id) VALUES ({}, {})""".format(
-                stock_id, portfolio_id
-            )
-            db.execute(query)
-            db.commit()
-        setattr(stock, "status", "1")
-    db.refresh(portfolio)
-    return portfolio
-
-
-@router.post("/update")
-def update_stocks(tickerlist_inc: List[str], db: Session = Depends(get_db)):
-    print(tickerlist_inc)
-    refused_tickers = []
-    tickerlist = tickerlist_inc
-    for ticker in tickerlist_inc:
+            not_found_stocks.append(ticker)
+    for ticker in stock_tickers:
         try:
-            updated_at = db.query(models.Stock.updated_at).filter(models.Stock.ticker == ticker).first()
-            if datetime.now() - timedelta(hours=5) <= updated_at or updated_at is None:
-                refused_tickers.append(ticker)
-                tickerlist.remove(ticker)
-        except:
-            pass
-    updated_results = get_some_tickers(tickerlist)
-    print(updated_results["ex_dividend_date"])
-    for index, row in updated_results.iterrows():
-        query = (
-            update(models.Stock)
-            .where(models.Stock.ticker == row["ticker"])
-            .values(
-                price=row["price"],
-                marketcap=row["marketcap"],
-                dividends=row["dividends"],
-                dividend_yield=row["dividend_yield"],
-                ex_dividend_date=row["ex_dividend_date"],
-                beta=row["beta"],
-                fifty_two_week_high=row["fifty_two_week_high"],
-                fifty_two_week_low=row["fifty_two_week_low"],
-                fifty_day_avg=row["fifty_day_avg"],
-                recommendation=row["recommendation"],
-                total_cash_per_share=row["total_cash_per_share"],
-                profit_margins=row["profit_margins"],
-                volume=row["volume"],
-            )
-        )
-        sql.execute(query, engine)
+            db.execute(insert(models.PortfolioStock).values(stock_ticker=ticker, portfolio_id=portfolio_id))
+            setattr(stock, "status", "1")
+            db.commit()
+        except Exception:
+            # Todo: Figure out what the correct exception is. Does not seem to be "Unique Violation" from psygop2.
+            stocks_already_in_portfolio.append(ticker)
+            db.rollback()
+    if not_found_stocks:
+        results["tickers_not_found"] = set(not_found_stocks)
+    if stocks_already_in_portfolio:
+        results["tickers_not_added"] = {
+            "tickers": set(stocks_already_in_portfolio),
+            "reason": "These stocks are already in this portfolio",
+        }
+    results["tickers_inserted"] = [
+        x for x in stock_tickers if x not in not_found_stocks and x not in stocks_already_in_portfolio
+    ]
+    return results
+
+
+# TODO Test Route
+@router.post("/update")
+def update_stocks(tickerlist_inc: List[str], response: Response, db: Session = Depends(get_db)):
+    refused_tickers = []
     updated_tickers = []
+    result = {}
+    tickerlist = tickerlist_inc.copy()
+    for ticker in set(tickerlist_inc):
+        updated_at = db.query(models.Stock.updated_at).filter(models.Stock.ticker == ticker).first()
+        time_threshold = datetime.now(timezone.utc) - timedelta(hours=5)
+        if updated_at.updated_at is None:
+            continue
+        if time_threshold < updated_at.updated_at:
+            refused_tickers.append(ticker)
+            tickerlist.remove(ticker)
+    try:
+        load_some_data(tickerlist)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_425_TOO_EARLY,
+            detail=f"Stocks with the tickers {tickerlist_inc} were already updated recently.",
+        )
     for ticker in tickerlist:
         ticker_queried = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
         updated_tickers.append(ticker_queried)
-    result = {}
-    result["refused_tickers"] = {
-        "tickers": refused_tickers,
-        "reason": "These tickers have already been updated recently",
-    }
-    result["updated_tickers"] = {"tickers": updated_tickers}
-    print(result)
+    if refused_tickers and updated_tickers:
+        result["refused_tickers"] = {
+            "tickers": refused_tickers,
+            "reason": "These tickers have already been updated recently",
+        }
+        result["updated_tickers"] = {"tickers": updated_tickers}
+    elif not refused_tickers and updated_tickers:
+        result["updated_tickers"] = {"tickers": updated_tickers}
     return result

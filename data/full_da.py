@@ -44,15 +44,18 @@ def make_ticker_list(df, removed_tickers=None):
 
 # %%
 def get_stock_data(ticker_list):
-    ticker = yq.Ticker(
-        ticker_list,
-        asynchronous=True,
-        status_forcelist=[429, 500, 502, 503, 504, 404],
-        validate=True,
-    )
-    modules = "financialData quoteType summaryProfile summaryDetail"
-    results = ticker.get_modules(modules)
-    return results, ticker.invalid_symbols
+    if ticker_list:
+        ticker = yq.Ticker(
+            ticker_list,
+            asynchronous=True,
+            status_forcelist=[429, 500, 502, 503, 504, 404],
+            validate=True,
+        )
+        modules = "financialData quoteType summaryProfile summaryDetail"
+        results = ticker.get_modules(modules)
+        return results, ticker.invalid_symbols
+    else:
+        raise ValueError("Passed an empty list as Argument")
 
 
 # %%
@@ -150,12 +153,6 @@ def make_df(dictionary, ticker_list):
     stock_df.loc[stock_df["ex_dividend_date"] == "{}", "ex_dividend_date"] = None
     stock_df["ex_dividend_date"] = pd.to_datetime(stock_df["ex_dividend_date"], errors="ignore")
     stock_df["ex_dividend_date"] = stock_df["ex_dividend_date"].dt.date
-    stock_df.ex_dividend_date.astype(object).where(stock_df.ex_dividend_date.notnull(), None)
-    stock_df["ex_dividend_date"] = stock_df["ex_dividend_date"].replace("NaT", np.nan)
-    stock_df["ex_dividend_date"].fillna(0)
-    # stock_df.loc[stock_df["ex_dividend_date"] == "0", "ex_dividend_date"] = None
-    # stock_df.loc[stock_df["ex_dividend_date"] == "{}", "ex_dividend_date"] = None
-    # stock_df.loc[stock_df["ex_dividend_date"] == "NaT", "ex_dividend_date"] = None
     stock_df = stock_df[stock_df["name"].notna()]
     stock_df = stock_df.replace(0, np.nan)
     stock_df = stock_df.replace("0", None)

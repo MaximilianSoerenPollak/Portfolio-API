@@ -1,19 +1,14 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
-from sqlalchemy.orm import Session, joinedload, contains_eager
-from .. import models, schemas, oauth2, utils
+from sqlalchemy.orm import Session, joinedload
+from .. import models, schemas, oauth2
 from ..database import get_db
 from typing import List, Union
-from fastapi.encoders import jsonable_encoder
-import pandas as pd
-from sqlalchemy.orm import class_mapper
 
 router = APIRouter(prefix="/portfolios", tags=["portfolios"])
 
 
 @router.get("/")
 def get_all_portfolios(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
-    #!TODO convert this to SQL. IT WORKS LEAVE IT (for now)
-
     results = (
         db.query(models.Portfolio)
         .options(joinedload(models.Portfolio.stocks).joinedload(models.PortfolioStock.stock))

@@ -1,6 +1,6 @@
-from pydantic import BaseModel, EmailStr, create_model, Field
-from datetime import datetime
-from typing import Optional, List, Union
+from pydantic import BaseModel, EmailStr
+from datetime import datetime, date
+from typing import Optional, List
 
 
 # ---- USER ----
@@ -52,7 +52,7 @@ class StockBase(BaseModel):
     marketcap: Optional[int]
     dividends: Optional[float]
     dividend_yield: Optional[float]
-    ex_dividend_date: Optional[str]
+    ex_dividend_date: Optional[date]
     beta: Optional[float]
     fifty_two_week_high: Optional[float]
     fifty_two_week_low: Optional[float]
@@ -67,6 +67,7 @@ class StockResponseSolo(StockBase):
     id: int
     created_by: int
     created_at: datetime
+    updated_at: Optional[datetime]
     # TODO add "updated at" field here once it's implemented in the model.
 
     class Config:
