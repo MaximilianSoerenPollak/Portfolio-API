@@ -2,12 +2,11 @@ from .database import Base
 from sqlalchemy import Column, Integer, String, Float, Date, BigInteger, Text, ForeignKey
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 from sqlalchemy.sql.expression import text
-from sqlalchemy.orm import relationship, backref
-from sqlalchemy.ext.associationproxy import association_proxy
+from sqlalchemy.orm import relationship
 
 """
 You still have to figure out why there is a "key error" when you try to make a new row in the associaiton table.
-YOu have tried almost everything. It seems that the function can not resolve the backref of Portfolio table so it seems 
+YOu have tried almost everything. It seems that the function can not resolve the backref of Portfolio table so it seems
 to call the clolumn that is menitoned there instead.
 
 
@@ -19,10 +18,9 @@ instead of stocks_included it tries to search for portfolio. Which gives a keyer
 
 class PortfolioStock(Base):
     __tablename__ = "portfolio_stocks"
-    id = Column(Integer, primary_key=True)
-    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"))
-    portfolio_id = Column(Integer, ForeignKey("portfolios.id", ondelete="CASCADE"))
-    count = Column(Integer, nullable=True)
+    stock_ticker = Column(String, ForeignKey("stocks.ticker", ondelete="CASCADE"), primary_key=True)
+    portfolio_id = Column(Integer, ForeignKey("portfolios.id", ondelete="CASCADE"), primary_key=True)
+    count = Column(Float, nullable=True)
     buy_in = Column(Float, nullable=True)
     stock = relationship("Stock", back_populates="portfolios")
     portfolio = relationship("Portfolio", back_populates="stocks")
@@ -32,8 +30,8 @@ class Stock(Base):
     __tablename__ = "stocks"
 
     id = Column(Integer, primary_key=True, nullable=False)
-    name = Column(String, nullable=False, unique=True)
-    ticker = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    ticker = Column(String, nullable=False, unique=True)
     yahoo_ticker = Column(String, nullable=False)
     exchange = Column(String(255), nullable=True)
     sector = Column(String(255), nullable=True)
@@ -42,7 +40,7 @@ class Stock(Base):
     country = Column(String(255), nullable=True)
     website = Column(String(255), nullable=True)
     price = Column(Float, nullable=False)
-    marketcap = Column(Integer, nullable=True)
+    marketcap = Column(BigInteger, nullable=True)
     dividends = Column(Float, nullable=True)
     dividend_yield = Column(Float, nullable=True)
     ex_dividend_date = Column(Date, nullable=True)

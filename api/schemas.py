@@ -1,6 +1,6 @@
-from pydantic import BaseModel, EmailStr, create_model, Field
+from pydantic import BaseModel, EmailStr
 from datetime import datetime, date
-from typing import Optional, List, Union
+from typing import Optional, List
 
 
 # ---- USER ----
@@ -68,6 +68,7 @@ class StockResponseSolo(StockBase):
     id: int
     created_by: int
     created_at: datetime
+    updated_at: Optional[datetime]
     # TODO add "updated at" field here once it's implemented in the model.
 
     class Config:
