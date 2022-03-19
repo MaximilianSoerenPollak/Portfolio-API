@@ -39,14 +39,7 @@ def get_stocks(
         query = query.filter(models.Stock.dividends >= dividends)
     if dividend_yield is not None:
         query = query.filter(models.Stock.dividend_yield >= dividend_yield)
-<<<<<<< HEAD
-    if not all_stocks:
-        return query.limit(limit).offset(skip).all()
-    if all_stocks:
-        return query.all()
-=======
     return query.order_by(models.Stock.ticker).limit(limit).offset(skip).all()
->>>>>>> master
 
 
 @router.get("/user", response_model=List[schemas.StockResponseSolo])
