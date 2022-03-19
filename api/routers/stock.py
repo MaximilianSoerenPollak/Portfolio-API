@@ -21,6 +21,7 @@ def get_stocks(
     price: Optional[float] = None,
     dividends: Optional[float] = None,
     dividend_yield: Optional[float] = None,
+    all_stocks: Optional[bool] = False,
 ):
     query = db.query(models.Stock)
     if name_search is not None:
@@ -37,7 +38,10 @@ def get_stocks(
         query = query.filter(models.Stock.dividends >= dividends)
     if dividend_yield is not None:
         query = query.filter(models.Stock.dividend_yield >= dividend_yield)
-    return query.limit(limit).offset(skip).all()
+    if not all_stocks:
+        return query.limit(limit).offset(skip).all()
+    if all_stocks:
+        return query.all()
 
 
 @router.get("/user", response_model=List[schemas.StockResponseSolo])

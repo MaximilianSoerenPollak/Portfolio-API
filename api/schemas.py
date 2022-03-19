@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, create_model, Field
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, List, Union
 
 
@@ -52,8 +52,9 @@ class StockBase(BaseModel):
     marketcap: Optional[int]
     dividends: Optional[float]
     dividend_yield: Optional[float]
-    ex_dividend_date: Optional[str]
+    ex_dividend_date: Optional[date]
     beta: Optional[float]
+    recommendation: Optional[str]
     fifty_two_week_high: Optional[float]
     fifty_two_week_low: Optional[float]
     fifty_day_avg: Optional[float]
