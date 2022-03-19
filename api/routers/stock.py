@@ -7,7 +7,7 @@ from typing import List, Optional, Union
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 
-# ,
+
 @router.get("/", response_model=List[schemas.StockResponseSolo])
 def get_stocks(
     db: Session = Depends(get_db),
