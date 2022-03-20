@@ -61,6 +61,7 @@ def save_df_as_cv(df):
     return df.to_csv().encode("utf-8")
 
 
+@st.cache
 def search_df(
     inc_df,
     div_check,
@@ -104,11 +105,6 @@ def search_df(
     if min_volume:
         df = df[df["volume"] >= min_volume]
     return df
-    # & (inc_df["recommendation"] == eval(recommendation))
-    #         (inc_df["exchange"] == eval(exchanges))
-    # & (inc_df["sectors"] == eval(sectors))
-    # & (inc_df["industry"] == eval(industries))
-    # & (inc_df["country"] == eval(countries))
 
 
 # ---- SIDEBAR ----
@@ -283,6 +279,7 @@ if page_select == "Stocks":
         )
         searched_min_volume = st.sidebar.number_input("Min. Volume", max_value=main_df["volume"].max())
         submitted = st.form_submit_button("Search")
+    filtered_df = main_df
     if submitted:
         filtered_df = search_df(
             main_df,
@@ -301,27 +298,26 @@ if page_select == "Stocks":
             searched_min_profit,
             searched_min_volume,
         )
-        try:
-            st.write(filtered_df)
-        except NameError:
-            st.error(
-                "Please press the search button after you have set your filters to filter the stocks. Or press it without to get all."
-            )
+    st.write(filtered_df)
     st.write("---")
     r3_col1, r2_col2 = st.columns(2)
     with r2_col2:
         filename = st.text_input("Name your file")
-        try:
-            st.download_button(
-                "Download the Filtered Stocks as CSV",
-                data=save_df_as_cv(filtered_df),
-                file_name=(filename + ".csv"),
-                mime="text/csv",
-            )
-        except NameError:
-            st.error(
-                "Please press the search button after you have set your filters to filter the stocks. Or press it without to get all."
-            )
+        st.download_button(
+            "Download the Filtered Stocks as CSV",
+            data=save_df_as_cv(filtered_df),
+            file_name=(filename + ".csv"),
+            mime="text/csv",
+        )
+    with r3_col1:
+        search_criteria = st.radio("Search criteria", options=["Ticker", "Name"])
+        if search_criteria == "Ticker":
+            select_option = filtered_df["ticker"].tolist()
+        elif search_criteria == "Name":
+            select_option = filtered_df["name"].tolist()
+        searched_stock = st.multiselect(
+            label="Save stocks to remember them in the Detailed View", options=select_option
+        )
 # st.dataframe(main_df)
 # numer = st.number_input("test")
 # if not numer:
