@@ -57,6 +57,60 @@ def get_historical_data(symbol, interval, period, adjusted):
     return df
 
 
+def save_df_as_cv(df):
+    return df.to_csv().encode("utf-8")
+
+
+def search_df(
+    inc_df,
+    div_check,
+    exchanges,
+    sectors,
+    industries,
+    countries,
+    recommendation,
+    max_price,
+    marketcap,
+    min_div,
+    min_div_yield,
+    fifty_day_avg,
+    min_cps,
+    min_profit,
+    min_volume,
+):
+    df = inc_df.copy()
+    if div_check:
+        df = df[df["dividends"] > 0]
+    if exchanges:
+        df = df[df["exchange"].isin(exchanges)]
+    if sectors:
+        df = df[df["sector"].isin(sectors)]
+    if industries:
+        df = df[df["industry"].isin(industries)]
+    if countries:
+        df = df[df["country"].isin(countries)]
+    if recommendation:
+        df = df[df["recommendation"].isin(recommendation)]
+    if max_price:
+        df = df[df["price"] <= max_price]
+    if min_div:
+        df = df[df["dividends"] >= min_div]
+    if min_div_yield:
+        df = df[df["dividend_yield"] >= min_div_yield]
+    if min_cps:
+        df = df[df["total_cash_per_share"] >= min_cps]
+    if min_profit:
+        df = df[df["profit_margins"] >= min_profit]
+    if min_volume:
+        df = df[df["volume"] >= min_volume]
+    return df
+    # & (inc_df["recommendation"] == eval(recommendation))
+    #         (inc_df["exchange"] == eval(exchanges))
+    # & (inc_df["sectors"] == eval(sectors))
+    # & (inc_df["industry"] == eval(industries))
+    # & (inc_df["country"] == eval(countries))
+
+
 # ---- SIDEBAR ----
 page_select = st.sidebar.selectbox(
     "Select Page", options=["Stocks", "Portfolio", "Stock-Detailed-View", "Login"], index=3
@@ -78,7 +132,7 @@ if page_select == "Login":
                     if "jwt_token" not in st.session_state:
                         st.session_state.jwt_token = token
                     st.session_state.logged_in = True
-                    st.info("You have successfully loged in")
+                    st.success("You have successfully loged in")
                     st.balloons()
 
                 else:
@@ -103,9 +157,9 @@ if page_select == "Login":
 
 # ---- STOCK DETAIL VIEW ----
 if page_select == "Stock-Detailed-View":
-    print(st.session_state.logged_in)
     if st.session_state.logged_in:
         main_df = get_all_stocks(st.session_state.jwt_token)
+        st.write(main_df[main_df["exchange"].isin([])])
         r1_col1, r1_col2 = st.columns(2)
         with r1_col1:
             search_criteria = st.radio("Search criteria", options=["Ticker", "Name"])
@@ -175,10 +229,102 @@ if page_select == "Stock-Detailed-View":
             "Please Login by selecting 'Login' on the drop down on the sidebar and logging in with your credentials."
         )
 if page_select == "Stocks":
-    pass
-    # with st.form("StockSearch"):
-
+    main_df = get_all_stocks(st.session_state.jwt_token)
+    with st.sidebar.form("StockSearch"):
+        st.sidebar.subheader("Use the filters below to search the DB.")
+        st.sidebar.write("Only enter the things you want to be filtered, there is no need to fill out all fields.")
+        st.sidebar.write("---")
+        exchange_cotainer = st.sidebar.container()
+        all_exhanges = st.sidebar.checkbox("Select all exchanges")
+        if all_exhanges:
+            searched_exchange = exchange_cotainer.multiselect(
+                "Exchange", main_df["exchange"].unique().tolist(), main_df["exchange"].unique().tolist()
+            )
+        else:
+            searched_exchange = exchange_cotainer.multiselect("Exchange", main_df["exchange"].unique().tolist())
+        sector_container = st.sidebar.container()
+        all_sectors = st.sidebar.checkbox("Select all Sectors")
+        if all_sectors:
+            searched_sector = sector_container.multiselect(
+                "Sectors", main_df["sector"].unique().tolist(), main_df["sector"].unique().tolist()
+            )
+        else:
+            searched_sector = sector_container.multiselect("Sectors", main_df["sector"].unique().tolist())
+        industry_container = st.sidebar.container()
+        all_industries = st.sidebar.checkbox("Select all industries")
+        if all_industries:
+            searched_industry = industry_container.multiselect(
+                "Industries", main_df["industry"].unique().tolist(), main_df["industry"].unique().tolist()
+            )
+        else:
+            searched_industry = industry_container.multiselect("Industries", main_df["industry"].unique().tolist())
+        country_container = st.sidebar.container()
+        all_countries = st.sidebar.checkbox("Select all countries")
+        if all_countries:
+            searched_country = country_container.multiselect(
+                "Countries", main_df["country"].unique().tolist(), main_df["country"].unique().tolist()
+            )
+        else:
+            searched_country = country_container.multiselect("Countries", main_df["country"].unique().tolist())
+        searched_max_price = st.sidebar.number_input("Max. Price", max_value=main_df["price"].max())
+        searched_market_cap = st.sidebar.number_input("Min. Marketcap", max_value=main_df["marketcap"].max())
+        dividends_check = st.sidebar.checkbox("Only show Stocks with Dividends")
+        searched_min_div = st.sidebar.number_input("Min. Dividends", max_value=main_df["dividends"].max())
+        searched_min_div_yield = st.sidebar.number_input(
+            "Min. Dividend yield", max_value=main_df["dividend_yield"].max()
+        )
+        searched_recommendation = st.sidebar.multiselect("Recommendation", options=main_df["recommendation"].unique())
+        searched_50day_avg = st.sidebar.number_input("Max 50day Average", max_value=main_df["fifty_day_avg"].max())
+        searched_min_cps = st.sidebar.number_input(
+            "Min. Cash per share", max_value=main_df["total_cash_per_share"].max()
+        )
+        searched_min_profit = st.sidebar.number_input(
+            "Min profit margin", max_value=main_df["profit_margins"].max(), help="1 is 100% here"
+        )
+        searched_min_volume = st.sidebar.number_input("Min. Volume", max_value=main_df["volume"].max())
+        submitted = st.form_submit_button("Search")
+    if submitted:
+        filtered_df = search_df(
+            main_df,
+            dividends_check,
+            searched_exchange,
+            searched_sector,
+            searched_industry,
+            searched_country,
+            searched_recommendation,
+            searched_max_price,
+            searched_market_cap,
+            searched_min_div,
+            searched_min_div_yield,
+            searched_50day_avg,
+            searched_min_cps,
+            searched_min_profit,
+            searched_min_volume,
+        )
+        try:
+            st.write(filtered_df)
+        except NameError:
+            st.error(
+                "Please press the search button after you have set your filters to filter the stocks. Or press it without to get all."
+            )
+    st.write("---")
+    r3_col1, r2_col2 = st.columns(2)
+    with r2_col2:
+        filename = st.text_input("Name your file")
+        try:
+            st.download_button(
+                "Download the Filtered Stocks as CSV",
+                data=save_df_as_cv(filtered_df),
+                file_name=(filename + ".csv"),
+                mime="text/csv",
+            )
+        except NameError:
+            st.error(
+                "Please press the search button after you have set your filters to filter the stocks. Or press it without to get all."
+            )
 # st.dataframe(main_df)
-numer = st.number_input("test")
-st.write(numer)
-print(numer)
+# numer = st.number_input("test")
+# if not numer:
+#     st.write("Numer is mepty")
+# st.write(numer)
+# # print(numer)
