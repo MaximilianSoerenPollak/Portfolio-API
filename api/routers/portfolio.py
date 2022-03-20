@@ -37,6 +37,7 @@ def create_portfolio(
     current_user: int = Depends(oauth2.get_current_user),
 ):
     new_portfolio = models.Portfolio(user_id=current_user.id, **portfolio.dict())
+    print(new_portfolio)
     db.add(new_portfolio)
     db.commit()
     db.refresh(new_portfolio)

@@ -1,5 +1,2 @@
 [theme]
 base="dark"
-
-[logger]
-level="debug"
