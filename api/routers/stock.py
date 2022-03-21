@@ -108,38 +108,39 @@ def update_stock_manually(
 
 @router.post("/add/{portfolio_id}")
 def add_stock_to_portfolio(
-    portfolio_id: int, stock_tickers: List[str], response: Response, db: Session = Depends(get_db)
+    portfolio_id: int, inc_stock: schemas.StockInPortfolioUpdate, response: Response, db: Session = Depends(get_db)
 ):
+    result = {}
     portfolio = db.query(models.Portfolio).filter(models.Portfolio.id == portfolio_id).first()
     if portfolio is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No portfolio with id: {id} found.")
-    not_found_stocks = []
-    stocks_already_in_portfolio = []
-    results = {}
-    for ticker in set(stock_tickers):
-        stock = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
-        if stock is None:
-            not_found_stocks.append(ticker)
-    for ticker in stock_tickers:
-        try:
-            db.execute(insert(models.PortfolioStock).values(stock_ticker=ticker, portfolio_id=portfolio_id))
-            setattr(stock, "status", "1")
-            db.commit()
-        except Exception:
-            # Todo: Figure out what the correct exception is. Does not seem to be "Unique Violation" from psygop2.
-            stocks_already_in_portfolio.append(ticker)
-            db.rollback()
-    if not_found_stocks:
-        results["tickers_not_found"] = set(not_found_stocks)
-    if stocks_already_in_portfolio:
-        results["tickers_not_added"] = {
-            "tickers": set(stocks_already_in_portfolio),
-            "reason": "These stocks are already in this portfolio",
-        }
-    results["tickers_inserted"] = [
-        x for x in stock_tickers if x not in not_found_stocks and x not in stocks_already_in_portfolio
-    ]
-    return results
+    stock = db.query(models.Stock).filter(models.Stock.ticker == inc_stock.stock_ticker).first()
+    if stock is None:
+        return HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Stock with ticker {inc_stock.stock_ticker} does not exist.",
+        )
+    try:
+        db.execute(
+            insert(models.PortfolioStock).values(
+                stock_ticker=inc_stock.stock_ticker,
+                portfolio_id=portfolio_id,
+                buy_in=inc_stock.buy_in,
+                count=inc_stock.count,
+            )
+        )
+        setattr(stock, "status", "1")
+        db.commit()
+    except Exception:
+        # Todo: Figure out what the correct exception is. Does not seem to be "Unique Violation" from psygop2.
+        db.rollback()
+        return HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Stock with ticker {inc_stock.stock_ticker} already in portfolio.",
+        )
+
+    result["detail"] = {"message": "Succesfully added stock", "stock": inc_stock}
+    return result
 
 
 # TODO Test Route

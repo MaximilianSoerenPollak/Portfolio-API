@@ -91,7 +91,7 @@ class StockCreate(StockBase):
 
 class StockResponseInsidePortfolio(StockResponseSolo):
     buy_in: Optional[float]
-    count: Optional[int]
+    count: Optional[float]
 
     class Config:
         orm_mode = True
@@ -121,6 +121,15 @@ class StockSchema(StockResponseSolo):
 
 class PortfolioSchema(PortfolioResponse):
     stocks: List[StockResponseInsidePortfolio]
+
+    class Config:
+        orm_mode = True
+
+
+class StockInPortfolioUpdate(BaseModel):
+    stock_ticker: str
+    count: float
+    buy_in: float
 
     class Config:
         orm_mode = True

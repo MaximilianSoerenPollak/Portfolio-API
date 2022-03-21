@@ -12,9 +12,6 @@ st.set_page_config(layout="wide")
 
 # ---- Inital Session state values ----
 
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-
 
 @st.cache
 def login(email, password):
@@ -26,6 +23,7 @@ def login(email, password):
         bearer_token = data["access_token"]
         st.session_state.jwt_token = bearer_token
         st.session_state.logged_in = True
+        persist("logged_in")
         return bearer_token
     else:
         return False
@@ -143,7 +141,7 @@ def create_portfolio(name, div_goal, mon_goal):
         return False, False, False
 
 
-def get_portfolios():
+def get_portfolios(allow_output_mutation=True):
     token = st.session_state.jwt_token
     url = f"{config('API_URL')}/portfolios"
     headers = {"Authorization": "Bearer " + token}
@@ -161,11 +159,12 @@ def get_portfolios():
         return False
 
 
-def add_stock_to_portfolio(tickers, portfolio_id):
+def add_stock_to_portfolio(ticker, portfolio_id, buy_in, count):
     token = st.session_state.jwt_token
     url = f"{config('API_URL')}/stocks/add/{portfolio_id}"
-    headers = {"Authorization": "Bearer " + token}
-    request = requests.post(url, json=tickers, headers=headers)
+    headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
+    data = {"stock_ticker": ticker, "buy_in": buy_in, "count": count}
+    request = requests.post(url, json=data, headers=headers)
     if request.status_code == 200:
         return request.json()
     elif request.status_code == 401:
@@ -173,6 +172,39 @@ def add_stock_to_portfolio(tickers, portfolio_id):
         return False
     else:
         return False
+
+
+def get_one_portfolio(portfolio_id):
+    token = st.session_state.jwt_token
+    url = f"{config('API_URL')}/portfolios/{portfolio_id}"
+    headers = {"Authorization": "Bearer " + token}
+    request = requests.get(url, headers=headers)
+    if request.status_code == 200:
+        data = request.json()
+        return data[0]
+    elif request.status_code == 401:
+        st.session_state.logged_in = False
+        return False
+    else:
+        return False
+
+
+def calc_total_div(stocks):
+    dividends = 0
+    for stock in stocks:
+        if stock["dividends"]:
+            dividends += stock["dividends"]
+    return dividends
+
+
+def calc_total_capital(stocks):
+    capital = 0
+    for stock in stocks:
+        price = stock["price"]
+        count = stock["count"]
+        stock_value = price * count
+        capital += stock_value
+    return capital
 
 
 # --- MAIN ---
@@ -454,31 +486,60 @@ def page_stocks():
         with portfolio_expander:
             r4_col1, r4_col2 = st.columns(2)
             with r4_col1:
-                stocks_to_add = st.multiselect(
+                stock_to_add = st.selectbox(
                     label="Select the Stocks you want to save.", options=filtered_df["ticker"].unique().tolist()
                 )
+                buy_in = st.number_input("What is your average buy in for this stock?")
+                count = st.number_input("How many of this stock do you own?")
                 portfolios = get_portfolios()
+            with r4_col2:
                 if portfolios:
                     selected_portfolio = st.selectbox(
                         label="Portfolio to add Stocks to | Portfolio Name, Portfolio_ID",
                         options=[(x[0], x[1]) for x in portfolios],
                         help="If this selection is empty, please create a portfolio from the portfolios tab.",
                     )
-
                 else:
                     st.write("Something went wrong. We could not grab your portfolios.")
-            with r4_col2:
-                add_stock_button = st.button("Add stocks to portfolio.")
+                add_stock_button = st.button("Add stocks in the list to portfolio.")
                 if add_stock_button:
-                    add_stock_to_portfolio_response = add_stock_to_portfolio(stocks_to_add, selected_portfolio[1])
-                    st.write(add_stock_to_portfolio_response)
+                    add_stock_to_portfolio_response = add_stock_to_portfolio(
+                        stock_to_add, selected_portfolio[1], buy_in, count
+                    )
+                    st.write(add_stock_to_portfolio_response["detail"])
+    else:
+        st.error("Please log in.")
 
 
 def page_portfolios():
     if st.session_state.logged_in:
-        selected_portfolio = st.sidebar.selectbox(
-            "Select which Portfolio to look at", options=["All", "Portoflio1", "Portfolio2"]
-        )
+        portfolios = get_portfolios()
+        if not portfolios:
+            st.session_state.logged_in = False
+        portfolios.append("All")
+        selected_portfolio = st.sidebar.selectbox("Select which Portfolio to look at", options=portfolios)
+        search_button = st.sidebar.button("Confirm selected Portfolio.")
+        st.sidebar.write("---")
+        if search_button:
+            if selected_portfolio != "All":
+                portfolio_response = get_one_portfolio(selected_portfolio[1])
+            else:
+                st.write("I have not implemented the combine function yet.")
+        try:
+            r1_col1, r1_col2, r1_col3, r1_col4 = st.columns(4)
+            with r1_col1:
+                st.subheader(f"Portfolio Name: {portfolio_response['name']}")
+                st.subheader(f"Monetary Goal: ${portfolio_response['monetary_goal']}")
+                st.subheader(f"Monetary Goal: ${portfolio_response['dividends_goal']}")
+                st.subheader(f"Nr. of Stocks: {len(portfolio_response['stocks'])}")
+            with r1_col2:
+                st.subheader("Considering all stocks.")
+                st.write("---")
+                st.subheader(f"Total Value: ${calc_total_capital(portfolio_response['stocks']):.2f}")
+                # st.subheader(f"Total Dividends p.a. : {calc_total_div(portfolio_response['stocks'])}")
+        except UnboundLocalError:
+            st.info("Please select a Portfolio and press the search button")
+
         with st.sidebar.form("Add stock to selected portfolio"):
             portfolio_name = st.sidebar.text_input("Portfolio Name")
             dividends_goal = st.sidebar.number_input(
