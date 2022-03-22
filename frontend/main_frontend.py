@@ -174,6 +174,7 @@ def add_stock_to_portfolio(ticker, portfolio_id, buy_in, count):
         return False
 
 
+@st.cache
 def get_one_portfolio(portfolio_id):
     token = st.session_state.jwt_token
     url = f"{config('API_URL')}/portfolios/{portfolio_id}"
@@ -190,11 +191,13 @@ def get_one_portfolio(portfolio_id):
 
 
 def calc_total_div(stocks):
-    dividends = 0
+    total_div = 0
     for stock in stocks:
         if stock["dividends"]:
-            dividends += stock["dividends"]
-    return dividends
+            dividends = stock["dividends"]
+            count = stock["count"]
+            total_div += dividends * count
+    return total_div
 
 
 def calc_total_capital(stocks):
@@ -202,9 +205,17 @@ def calc_total_capital(stocks):
     for stock in stocks:
         price = stock["price"]
         count = stock["count"]
-        stock_value = price * count
-        capital += stock_value
+        capital += price * count
     return capital
+
+
+def calc_buyin_capital(stocks):
+    buyin_capital = 0
+    for stock in stocks:
+        buyin = stock["buy_in"]
+        count = stock["count"]
+        buyin_capital += buyin * count
+    return buyin_capital
 
 
 # --- MAIN ---
@@ -520,23 +531,76 @@ def page_portfolios():
         selected_portfolio = st.sidebar.selectbox("Select which Portfolio to look at", options=portfolios)
         search_button = st.sidebar.button("Confirm selected Portfolio.")
         st.sidebar.write("---")
-        if search_button:
-            if selected_portfolio != "All":
-                portfolio_response = get_one_portfolio(selected_portfolio[1])
-            else:
-                st.write("I have not implemented the combine function yet.")
+        if selected_portfolio != "All":
+            portfolio_response = get_one_portfolio(selected_portfolio[1])
+        else:
+            st.write("I have not implemented the combine function yet.")
         try:
-            r1_col1, r1_col2, r1_col3, r1_col4 = st.columns(4)
+            capital = calc_total_capital(portfolio_response["stocks"])
+            dividends = calc_total_div(portfolio_response["stocks"])
+            r1_col1, r1_col2, r1_col3 = st.columns(3)
             with r1_col1:
-                st.subheader(f"Portfolio Name: {portfolio_response['name']}")
-                st.subheader(f"Monetary Goal: ${portfolio_response['monetary_goal']}")
-                st.subheader(f"Monetary Goal: ${portfolio_response['dividends_goal']}")
+                st.metric(
+                    "Monetary Goal",
+                    value=f"${portfolio_response['monetary_goal']}",
+                    delta=f"{round(capital - portfolio_response['monetary_goal'],2)}",
+                )
                 st.subheader(f"Nr. of Stocks: {len(portfolio_response['stocks'])}")
             with r1_col2:
-                st.subheader("Considering all stocks.")
-                st.write("---")
-                st.subheader(f"Total Value: ${calc_total_capital(portfolio_response['stocks']):.2f}")
-                # st.subheader(f"Total Dividends p.a. : {calc_total_div(portfolio_response['stocks'])}")
+                st.metric(
+                    "Dividends Goal",
+                    value=f"${portfolio_response['dividends_goal']}",
+                    delta=f"{round(dividends- portfolio_response['dividends_goal'],2)}",
+                )
+                st.subheader(f"Dividends p.a: ${dividends:.2f}")
+            with r1_col3:
+                st.metric(
+                    "Capital: ",
+                    value=f"${round(capital,2)}",
+                    delta=round(calc_buyin_capital(portfolio_response["stocks"]), 2),
+                )
+                st.subheader(f"Dividend yield: {(dividends/capital)*100:.2f}%")
+            st.write("---")
+            portfolio_expander = st.expander("Stocks in portfolio")
+            stocks_in_portfolio_df = pd.DataFrame(portfolio_response["stocks"])
+            with portfolio_expander:
+                st.write(stocks_in_portfolio_df)
+            r3_col1, r3_col2 = st.columns(2)
+            with r3_col1:
+                add_stocks_pf = st.expander("Add stocks to your portfolio")
+                with add_stocks_pf:
+                    stock_to_add = st.selectbox(
+                        label="Select the Stocks you want to save.",
+                        options=stocks_in_portfolio_df["ticker"].unique().tolist(),
+                    )
+                    buy_in = st.number_input("What is your average buy in for this stock?")
+                    count = st.number_input("How many of this stock do you own?")
+                    if portfolios:
+                        selected_portfolio = st.selectbox(
+                            label="Portfolio to add Stocks to | Portfolio Name, Portfolio_ID",
+                            options=[(x[0], x[1]) for x in portfolios],
+                            help="If this selection is empty, please create a portfolio from the portfolios tab.",
+                        )
+                    else:
+                        st.write("Something went wrong. We could not grab your portfolios.")
+                    add_stock_button = st.button("Add stocks in the list to portfolio.")
+                    if add_stock_button:
+                        add_stock_to_portfolio_response = add_stock_to_portfolio(
+                            stock_to_add, selected_portfolio[1], buy_in, count
+                        )
+                        st.write(add_stock_to_portfolio_response["detail"])
+            with r3_col2:
+                download_csv = st.expander("Download the stocks in your Portfolio as CSV")
+                with download_csv:
+                    filename2 = st.text_input("Name your file")
+                    st.download_button(
+                        "Download your portfolio stocks as CSV",
+                        data=save_df_as_cv(stocks_in_portfolio_df),
+                        file_name=f"{filename2}.csv",
+                        mime="text/csv",
+                        key="portfolio_download",
+                    )
+
         except UnboundLocalError:
             st.info("Please select a Portfolio and press the search button")
 
