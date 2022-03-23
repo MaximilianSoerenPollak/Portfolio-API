@@ -4,11 +4,10 @@ import requests
 import yahooquery as yq
 import plotly.express as px
 from decouple import config
+from datetime import datetime
 
 # ---- FUNCTIONS ----
 # ---- LOGIN ----
-
-
 @st.cache
 def login(email, password):
     url = f"{config('API_URL')}/login"
@@ -16,9 +15,8 @@ def login(email, password):
     request = requests.post(url, login_data)
     if request.status_code == 200:
         data = request.json()
-        bearer_token = data["access_token"]
-        st.session_state.jwt_token = bearer_token
-        st.session_state.logged_in = True
+        secret_token = data["access_token"]
+        bearer_token = secret_token
         return bearer_token
     else:
         return False
@@ -49,8 +47,7 @@ def get_all_stocks():
     if request.status_code == 200:
         data = request.json()
         return pd.json_normalize(data)
-    if request.status_code == 401:
-        st.session_state.logged_in = False
+    elif request.status_code == 401:
         return False
 
 
@@ -112,3 +109,66 @@ def search_df(
 
 def save_df_as_cv(df):
     return df.to_csv().encode("utf-8")
+
+
+def add_stock_to_db(
+    name,
+    ticker,
+    yahoo_ticker,
+    price,
+    exchange=None,
+    sector=None,
+    industry=None,
+    long_business_summary=None,
+    country=None,
+    website=None,
+    recommendation=None,
+    ex_dividend_date=None,
+    marketcap=None,
+    dividends=None,
+    dividend_yield=None,
+    beta=None,
+    fifty_two_week_high=None,
+    fifty_two_week_low=None,
+    fifty_day_avg=None,
+    total_cash_per_share=None,
+    profit_margins=None,
+    volume=None,
+):
+    token = st.session_state.jwt_token
+    url = f"{config('API_URL')}/stocks"
+    headers = {"Authorization": "Bearer " + token}
+    print(ex_dividend_date)
+    if ex_dividend_date is not "":
+        ex_dividend_date = datetime.strptime(ex_dividend_date, "%Y-%m-%d")
+    data = {
+        "name": name,
+        "ticker": ticker,
+        "yahoo_ticker": yahoo_ticker,
+        "price": price,
+        "exchange": exchange,
+        "sector": sector,
+        "industry": industry,
+        "long_business_summary": long_business_summary,
+        "country": country,
+        "website": website,
+        "recommendation": recommendation,
+        "ex_dividend_date": ex_dividend_date,
+        "marketcap": marketcap,
+        "dividends": dividends,
+        "dividend_yield": dividend_yield,
+        "beta": beta,
+        "fifty_two_week_high": fifty_two_week_high,
+        "fifty_two_week_low": fifty_two_week_low,
+        "fifty_day_avg": fifty_day_avg,
+        "total_cash_per_share": total_cash_per_share,
+        "profit_margins": profit_margins,
+        "volume": volume,
+    }
+
+    request = requests.post(url, json=data, headers=headers)
+    if request.status_code == 201:
+        data = request.json()
+        return data
+    else:
+        return False
