@@ -11,8 +11,8 @@ st.set_page_config(layout="wide")
 # --- Initialize session_states ----
 # if "jwt_token" not in st.session_state:
 #     st.session_state.jwt_token = ""
-# if "logged_in" not in st.session_state:
-#     st.session_state.logged_in = False
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 # ---- STREAMLIT PAGE -----
 # ---- LOGIN ----
 login_signup_expander = st.expander("Login/Sign Up")
@@ -48,11 +48,12 @@ with login_signup_expander:
                         st.info("Please now Login.")
                     else:
                         st.error(
-                            """Something went wrong, please check that you have entered a correct e-mail and try again. 
+                            """Something went wrong, please check that you have entered a correct e-mail and try again.
                             Or maybe you already have an account?"""
                         )
 st.write("---")
 # ---- STOCKS ----
+st.subheader("Stocks")
 stocks_container = st.container()
 with stocks_container:
     if st.session_state.logged_in:
@@ -60,85 +61,82 @@ with stocks_container:
         if main_df is bool:
             st.session_state.logged_in = False
         else:
-            with st.sidebar.form("StockSearch"):
-                st.sidebar.subheader("Stock Search")
-                st.sidebar.write(
-                    "Only enter the things you want to be filtered, there is no need to fill out all fields."
-                )
-                st.sidebar.write("---")
-                exchange_cotainer = st.sidebar.container()
-                all_exhanges = st.sidebar.checkbox("Select all exchanges")
-                if all_exhanges:
-                    searched_exchange = exchange_cotainer.multiselect(
-                        "Exchange",
-                        main_df["exchange"][main_df["exchange"].notnull()].unique().tolist(),
-                        main_df["exchange"][main_df["exchange"].notnull()].unique().tolist(),
+            stock_filter_expander = st.sidebar.expander("Stock Filters")
+            with stock_filter_expander:
+                with st.form("StockSearch"):
+                    st.subheader("Stock Search")
+                    st.write("Only enter the things you want to be filtered, there is no need to fill out all fields.")
+                    st.write("---")
+                    exchange_cotainer = st.container()
+                    all_exhanges = st.checkbox("Select all exchanges")
+                    if all_exhanges:
+                        searched_exchange = exchange_cotainer.multiselect(
+                            "Exchange",
+                            main_df["exchange"][main_df["exchange"].notnull()].unique().tolist(),
+                            main_df["exchange"][main_df["exchange"].notnull()].unique().tolist(),
+                        )
+                    else:
+                        searched_exchange = exchange_cotainer.multiselect(
+                            "Exchange",
+                            main_df["exchange"][main_df["exchange"].notnull()].unique().tolist(),
+                        )
+                    sector_container = st.container()
+                    all_sectors = st.checkbox("Select all Sectors")
+                    if all_sectors:
+                        searched_sector = sector_container.multiselect(
+                            "Sectors",
+                            main_df["sector"][main_df["sector"].notnull()].unique().tolist(),
+                            main_df["sector"][main_df["sector"].notnull()].unique().tolist(),
+                        )
+                    else:
+                        searched_sector = sector_container.multiselect(
+                            "Sectors",
+                            main_df["sector"][main_df["sector"].notnull()].unique().tolist(),
+                        )
+                    industry_container = st.container()
+                    all_industries = st.checkbox("Select all industries")
+                    if all_industries:
+                        searched_industry = industry_container.multiselect(
+                            "Industries",
+                            main_df["industry"][main_df["industry"].notnull()].unique().tolist(),
+                            main_df["industry"][main_df["industry"].notnull()].unique().tolist(),
+                        )
+                    else:
+                        searched_industry = industry_container.multiselect(
+                            "Industries", main_df["industry"][main_df["industry"].notnull()].unique().tolist()
+                        )
+                    country_container = st.container()
+                    all_countries = st.checkbox("Select all countries")
+                    if all_countries:
+                        searched_country = country_container.multiselect(
+                            "Countries",
+                            main_df["country"][main_df["country"].notnull()].unique().tolist(),
+                            main_df["country"][main_df["country"].notnull()].unique().tolist(),
+                        )
+                    else:
+                        searched_country = country_container.multiselect(
+                            "Countries", main_df["country"][main_df["country"].notnull()].unique().tolist()
+                        )
+                    searched_max_price = st.number_input("Max. Price", max_value=main_df["price"].max())
+                    searched_market_cap = st.number_input("Min. Marketcap", max_value=main_df["marketcap"].max())
+                    dividends_check = st.checkbox("Only show Stocks with Dividends")
+                    searched_min_div = st.number_input("Min. Dividends", max_value=main_df["dividends"].max())
+                    searched_min_div_yield = st.number_input(
+                        "Min. Dividend yield", max_value=main_df["dividend_yield"].max()
                     )
-                else:
-                    searched_exchange = exchange_cotainer.multiselect(
-                        "Exchange",
-                        main_df["exchange"][main_df["exchange"].notnull()].unique().tolist(),
+                    searched_recommendation = st.multiselect(
+                        "Recommendation", options=main_df["recommendation"].unique()
                     )
-                sector_container = st.sidebar.container()
-                all_sectors = st.sidebar.checkbox("Select all Sectors")
-                if all_sectors:
-                    searched_sector = sector_container.multiselect(
-                        "Sectors",
-                        main_df["sector"][main_df["sector"].notnull()].unique().tolist(),
-                        main_df["sector"][main_df["sector"].notnull()].unique().tolist(),
+                    searched_50day_avg = st.number_input("Max 50day Average", max_value=main_df["fifty_day_avg"].max())
+                    searched_min_cps = st.number_input(
+                        "Min. Cash per share", max_value=main_df["total_cash_per_share"].max()
                     )
-                else:
-                    searched_sector = sector_container.multiselect(
-                        "Sectors",
-                        main_df["sector"][main_df["sector"].notnull()].unique().tolist(),
+                    searched_min_profit = st.number_input(
+                        "Min profit margin",
+                        max_value=main_df["profit_margins"].max(),
+                        help="1 is 100% here",
                     )
-                industry_container = st.sidebar.container()
-                all_industries = st.sidebar.checkbox("Select all industries")
-                if all_industries:
-                    searched_industry = industry_container.multiselect(
-                        "Industries",
-                        main_df["industry"][main_df["industry"].notnull()].unique().tolist(),
-                        main_df["industry"][main_df["industry"].notnull()].unique().tolist(),
-                    )
-                else:
-                    searched_industry = industry_container.multiselect(
-                        "Industries", main_df["industry"][main_df["industry"].notnull()].unique().tolist()
-                    )
-                country_container = st.sidebar.container()
-                all_countries = st.sidebar.checkbox("Select all countries")
-                if all_countries:
-                    searched_country = country_container.multiselect(
-                        "Countries",
-                        main_df["country"][main_df["country"].notnull()].unique().tolist(),
-                        main_df["country"][main_df["country"].notnull()].unique().tolist(),
-                    )
-                else:
-                    searched_country = country_container.multiselect(
-                        "Countries", main_df["country"][main_df["country"].notnull()].unique().tolist()
-                    )
-                searched_max_price = st.sidebar.number_input("Max. Price", max_value=main_df["price"].max())
-                searched_market_cap = st.sidebar.number_input("Min. Marketcap", max_value=main_df["marketcap"].max())
-                dividends_check = st.sidebar.checkbox("Only show Stocks with Dividends")
-                searched_min_div = st.sidebar.number_input("Min. Dividends", max_value=main_df["dividends"].max())
-                searched_min_div_yield = st.sidebar.number_input(
-                    "Min. Dividend yield", max_value=main_df["dividend_yield"].max()
-                )
-                searched_recommendation = st.sidebar.multiselect(
-                    "Recommendation", options=main_df["recommendation"].unique()
-                )
-                searched_50day_avg = st.sidebar.number_input(
-                    "Max 50day Average", max_value=main_df["fifty_day_avg"].max()
-                )
-                searched_min_cps = st.sidebar.number_input(
-                    "Min. Cash per share", max_value=main_df["total_cash_per_share"].max()
-                )
-                searched_min_profit = st.sidebar.number_input(
-                    "Min profit margin",
-                    max_value=main_df["profit_margins"].max(),
-                    help="1 is 100% here",
-                )
-                searched_min_volume = st.sidebar.number_input("Min. Volume", max_value=main_df["volume"].max())
-                with st.sidebar:
+                    searched_min_volume = st.number_input("Min. Volume", max_value=main_df["volume"].max())
                     submitted = st.form_submit_button("Search")
                     st.write("---")
             filtered_df = main_df
@@ -334,3 +332,126 @@ with stocks_container:
         st.info(
             "Please Login by selecting 'Login' on the drop down on the sidebar and logging in with your credentials."
         )
+
+
+# ---- PORTFOLIO ----
+st.write("---")
+st.subheader("Portfolio")
+portfolio_container = st.container()
+with portfolio_container:
+    if st.session_state.logged_in:
+        portfolio_sidebar_expander = st.sidebar.expander("Portfolio Stuff")
+        with portfolio_sidebar_expander:
+            portfolios = get_portfolios()
+            if not portfolios:
+                st.session_state.logged_in = False
+            portfolios.append("All")
+            selected_portfolio = st.selectbox("Select which Portfolio to look at", options=portfolios)
+            search_button = st.button("Confirm selected Portfolio.")
+            st.sidebar.write("---")
+            if selected_portfolio != "All":
+                portfolio_response = get_one_portfolio(selected_portfolio[1])
+            else:
+                st.write("I have not implemented the combine function yet.")
+            st.write("---")
+            with st.form("Add stock to selected portfolio"):
+                st.write("Create new Portfolio")
+                portfolio_name = st.text_input("Portfolio Name")
+                dividends_goal = st.number_input(
+                    "Dividends Goal [OPTIONAL]", help="This is a goal on how much dividends you want to get in a year."
+                )
+                monetary_goal = st.number_input(
+                    "Monetary Goal [OPTIONAL]", help="This is a goal on what the value of the portfolio"
+                )
+                submitted = st.form_submit_button("Create Portfolio")
+                if submitted:
+                    name, dividends_goal, monetary_goal = create_portfolio(
+                        portfolio_name, dividends_goal, monetary_goal
+                    )
+                    if name:
+                        st.success("Created portfolio successfully")
+                        st.write(f"Portfolio name: {name}")
+                        st.write(f"Dividends Goal: {dividends_goal}")
+                        st.write(f"Monetary Goal: {monetary_goal}")
+                    else:
+                        st.error("Something went wrong, please try again.")
+        portfolio_expander = st.expander("Portfolio Key Stats")
+        with portfolio_expander:
+            try:
+                capital = calc_total_capital(portfolio_response["stocks"])
+                dividends = calc_total_div(portfolio_response["stocks"])
+                r1_col1, r1_col2, r1_col3 = st.columns(3)
+                with r1_col1:
+                    st.metric(
+                        "Monetary Goal",
+                        value=f"${portfolio_response['monetary_goal']}",
+                        delta=f"{round(capital - portfolio_response['monetary_goal'],2)}",
+                    )
+                    st.subheader(f"Nr. of Stocks: {len(portfolio_response['stocks'])}")
+                with r1_col2:
+                    st.metric(
+                        "Dividends Goal",
+                        value=f"${portfolio_response['dividends_goal']}",
+                        delta=f"{round(dividends- portfolio_response['dividends_goal'],2)}",
+                    )
+                    st.subheader(f"Dividends p.a: ${dividends:.2f}")
+                with r1_col3:
+                    st.metric(
+                        "Capital: ",
+                        value=f"${round(capital,2)}",
+                        delta=round(calc_buyin_capital(portfolio_response["stocks"]), 2),
+                    )
+                    st.subheader(f"Dividend yield: {(dividends/capital)*100:.2f}%")
+            except UnboundLocalError:
+                st.info("Please select a Portfolio and press the search button")
+        stocks_in_portfolio_expander = st.expander("Stocks in portfolio")
+        stocks_in_portfolio_df = pd.DataFrame(portfolio_response["stocks"])
+        with stocks_in_portfolio_expander:
+            st.write(stocks_in_portfolio_df)
+        r3_col1, r3_col2 = st.columns(2)
+        with r3_col1:
+            add_stocks_pf = st.expander("Add stocks to your portfolio")
+            with add_stocks_pf:
+                stock_to_add = st.selectbox(
+                    label="Select the Stocks you want to save.",
+                    options=stocks_in_portfolio_df["ticker"].unique().tolist(),
+                )
+                buy_in = st.number_input("What is your average buy in for this stock?")
+                count = st.number_input("How many of this stock do you own?")
+                if portfolios:
+                    selected_portfolio = st.selectbox(
+                        label="Portfolio to add Stocks to | Portfolio Name, Portfolio_ID",
+                        options=[(x[0], x[1]) for x in portfolios],
+                        help="If this selection is empty, please create a portfolio from the portfolios tab.",
+                    )
+                else:
+                    st.write("Something went wrong. We could not grab your portfolios.")
+                add_stock_button = st.button("Add stocks in the list to portfolio.")
+                if add_stock_button:
+                    add_stock_to_portfolio_response = add_stock_to_portfolio(
+                        stock_to_add, selected_portfolio[1], buy_in, count
+                    )
+                    st.write(add_stock_to_portfolio_response["detail"])
+        with r3_col2:
+            download_csv = st.expander("Download the stocks in your Portfolio as CSV")
+            with download_csv:
+                filename2 = st.text_input("Name your file", key="portfolio_stocks_csv_name")
+                st.download_button(
+                    "Download your portfolio stocks as CSV",
+                    data=save_df_as_cv(stocks_in_portfolio_df),
+                    file_name=f"{filename2}.csv",
+                    mime="text/csv",
+                    key="portfolio_download",
+                )
+        r4_col1, r4_col2 = st.columns(2)
+        with r4_col1:
+            portfolio_industry_distrb_expander = st.expander("Industry Distribution")
+            with portfolio_industry_distrb_expander:
+                st.plotly_chart(industry_distribution(stocks_in_portfolio_df))
+        with r4_col2:
+            portfolio_sector_distrb_expander = st.expander("Sector Distribution")
+            with portfolio_sector_distrb_expander:
+                st.plotly_chart(sector_distribution(stocks_in_portfolio_df))
+        st.plotly_chart(div_vs_nondiv_distribution(stocks_in_portfolio_df))
+    else:
+        st.error("Please log in.")

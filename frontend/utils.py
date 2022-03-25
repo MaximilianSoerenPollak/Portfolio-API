@@ -139,7 +139,7 @@ def add_stock_to_db(
     url = f"{config('API_URL')}/stocks"
     headers = {"Authorization": "Bearer " + token}
     print(ex_dividend_date)
-    if ex_dividend_date is not "":
+    if ex_dividend_date != "":
         ex_dividend_date = datetime.strptime(ex_dividend_date, "%Y-%m-%d")
     data = {
         "name": name,
@@ -172,3 +172,88 @@ def add_stock_to_db(
         return data
     else:
         return False
+
+
+def get_portfolios(allow_output_mutation=True):
+    token = st.session_state.jwt_token
+    url = f"{config('API_URL')}/portfolios"
+    headers = {"Authorization": "Bearer " + token}
+    request = requests.get(url, headers=headers)
+    if request.status_code == 200:
+        data = request.json()
+        portfolio_name_id = []
+        for portfolio in data:
+            portfolio_name_id.append((portfolio["name"], portfolio["id"]))
+        return portfolio_name_id
+    elif request.status_code == 401:
+        st.session_state.logged_in = False
+        return False
+    else:
+        return False
+
+
+def get_one_portfolio(portfolio_id):
+    token = st.session_state.jwt_token
+    url = f"{config('API_URL')}/portfolios/{portfolio_id}"
+    headers = {"Authorization": "Bearer " + token}
+    request = requests.get(url, headers=headers)
+    if request.status_code == 200:
+        data = request.json()
+        return data[0]
+    elif request.status_code == 401:
+        st.session_state.logged_in = False
+        return False
+    else:
+        return False
+
+
+def calc_total_div(stocks):
+    total_div = 0
+    for stock in stocks:
+        if stock["dividends"]:
+            dividends = stock["dividends"]
+            count = stock["count"]
+            total_div += dividends * count
+    return total_div
+
+
+def calc_total_capital(stocks):
+    capital = 0
+    for stock in stocks:
+        price = stock["price"]
+        count = stock["count"]
+        capital += price * count
+    return capital
+
+
+def calc_buyin_capital(stocks):
+    buyin_capital = 0
+    for stock in stocks:
+        buyin = stock["buy_in"]
+        count = stock["count"]
+        buyin_capital += buyin * count
+    return buyin_capital
+
+
+def industry_distribution(stocks):
+    fig = px.pie(
+        stocks, values=stocks["industry"].value_counts(), names="industry", title="% of Stocks in each industry"
+    )
+    return fig
+
+
+def sector_distribution(stocks):
+    fig = px.pie(stocks, values=stocks["sector"].value_counts(), names="sector", title="% of Stocks in each sector")
+    return fig
+
+
+def div_vs_nondiv_distribution(stocks):
+    zero_stocks = stocks["dividends"].isna().sum()
+    div_stocks = len(stocks) - zero_stocks
+    fig = px.pie(
+        stocks,
+        values=[div_stocks, zero_stocks],
+        names=["Stocks with dividends", "Stock without dividend"],
+        title="% of Stocks with and without dividends.",
+    )
+    return fig
