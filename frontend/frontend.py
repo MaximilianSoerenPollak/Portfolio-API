@@ -525,5 +525,6 @@ with portfolio_container:
                         st.write(f"{stock} : {vol*100:.2f}%")
                         combined_volatility += vol
                     st.write(f"Avg. Volatility: {combined_volatility/len(stocks_in_portfolio_df)*100:.2f}%")
+
     else:
         st.error("Please log in.")
