@@ -445,13 +445,85 @@ with portfolio_container:
                 )
         r4_col1, r4_col2 = st.columns(2)
         with r4_col1:
-            portfolio_industry_distrb_expander = st.expander("Industry Distribution")
+            portfolio_industry_distrb_expander = st.expander("Industry distribution")
             with portfolio_industry_distrb_expander:
                 st.plotly_chart(industry_distribution(stocks_in_portfolio_df))
+            portfolio_div_distribution_expander = st.expander("Dividends vs non-dividends distribution")
+            with portfolio_div_distribution_expander:
+                st.plotly_chart(div_vs_nondiv_distribution(stocks_in_portfolio_df))
+            portfolio_div_contrib_expander = st.expander("% Contribution towards dividends per stock.")
+            with portfolio_div_contrib_expander:
+                st.plotly_chart(div_contrib_distribution(stocks_in_portfolio_df, dividends))
         with r4_col2:
             portfolio_sector_distrb_expander = st.expander("Sector Distribution")
             with portfolio_sector_distrb_expander:
                 st.plotly_chart(sector_distribution(stocks_in_portfolio_df))
-        st.plotly_chart(div_vs_nondiv_distribution(stocks_in_portfolio_df))
+            portfolio_stock_distrb_count_expander = st.expander("Stocks % of overall number")
+            with portfolio_stock_distrb_count_expander:
+                st.plotly_chart(stock_distribution_count(stocks_in_portfolio_df))
+            portfolio_stock_distrb_expander = st.expander("Stocks in % of capital")
+            with portfolio_stock_distrb_expander:
+                st.plotly_chart(stock_distribution_percent_capital(portfolio_response["stocks"]))
+
+        portfolio_stocks_graph_expander = st.expander("Stock price and % change over time")
+        with portfolio_stocks_graph_expander:
+            adjusted_check = st.checkbox("Adjusted", key="portfolio_adjusted")
+            period_selected = st.selectbox(
+                "Period",
+                options=["1d", "5d", "7d", "60d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"],
+                index=11,
+            )
+            interval_selected = st.selectbox(
+                "Interval",
+                options=["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo"],
+                index=8,
+            )
+            history_df = get_historical_data(
+                symbol=stocks_in_portfolio_df["ticker"],
+                interval=interval_selected,
+                period=period_selected,
+                adjusted=adjusted_check,
+            )
+            r5_col1, r5_col2 = st.columns(2)
+            with r5_col1:
+                fig = px.line(history_df, x="date", y="close", color="symbol")
+                fig.update_layout(margin=dict(l=10, r=10, t=10, b=10))
+                st.plotly_chart(fig)
+            with r5_col2:
+                history_df_pct = history_df.copy()
+                history_df_pct["change %"] = (history_df_pct.groupby("symbol"))["close"].pct_change() * 100
+                fig = px.line(history_df_pct, x="date", y="change %", color="symbol")
+                fig.update_layout(margin=dict(l=10, r=10, t=10, b=10))
+                st.plotly_chart(fig)
+        r6_col1, r6_col2 = st.columns(2)
+        with r6_col1:
+            cagr_expander = st.expander("Cumulative Annual Growth Rate (CAGR)")
+            with cagr_expander:
+                st.write(
+                    """Compound annual growth rate (CAGR) is the rate of returns from an investment over a period of time.
+                    The calculation of CAGR is based on the presumption that all the profit will be reinvested at the end of each year."""
+                )
+                with st.spinner("Calculating CAGR for your stocks."):
+                    combined_cagr = 0
+                    for stock in stocks_in_portfolio_df["ticker"]:
+                        cagr = calc_cagr(stock)
+                        st.write(f"{stock} : {cagr*100:.2f}%")
+                        combined_cagr += cagr
+                    st.write(f"Avg. CAGR: {combined_cagr/len(stocks_in_portfolio_df)*100:.2f}%")
+        with r6_col2:
+            stock_volatility_expander = st.expander("Volatilie of your stocks/portfolio")
+            with stock_volatility_expander:
+                st.write(
+                    """Volatility here refers to the rate at which the stock price rise and fall over a particular period of time. 
+                    It is equivalent to the standard deviation of the daily returns. 
+                    The higher the stock volatility the higher the risk of the investment. This is calculated on an anual Term"""
+                )
+                with st.spinner("Calculating Volatility for your stocks."):
+                    combined_volatility = 0
+                    for stock in stocks_in_portfolio_df["ticker"]:
+                        vol = calc_volatility(stock)
+                        st.write(f"{stock} : {vol*100:.2f}%")
+                        combined_volatility += vol
+                    st.write(f"Avg. Volatility: {combined_volatility/len(stocks_in_portfolio_df)*100:.2f}%")
     else:
         st.error("Please log in.")

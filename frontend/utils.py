@@ -5,6 +5,7 @@ import yahooquery as yq
 import plotly.express as px
 from decouple import config
 from datetime import datetime
+import numpy as np
 
 # ---- FUNCTIONS ----
 # ---- LOGIN ----
@@ -138,7 +139,6 @@ def add_stock_to_db(
     token = st.session_state.jwt_token
     url = f"{config('API_URL')}/stocks"
     headers = {"Authorization": "Bearer " + token}
-    print(ex_dividend_date)
     if ex_dividend_date != "":
         ex_dividend_date = datetime.strptime(ex_dividend_date, "%Y-%m-%d")
     data = {
@@ -257,3 +257,62 @@ def div_vs_nondiv_distribution(stocks):
         title="% of Stocks with and without dividends.",
     )
     return fig
+
+
+def div_contrib_distribution(stocks, total_div):
+    fig = px.pie(
+        stocks,
+        values=total_div / (stocks["count"] * stocks["dividends"]),
+        names="name",
+        title="% of contribution towards the total Dividends by stock.",
+    )
+    return fig
+
+
+def stock_distribution_count(stocks):
+    stock_nr = stocks["count"].sum()
+    fig = px.pie(
+        stocks,
+        values=stocks["count"] / stock_nr,
+        names="name",
+        title="% of Stocks with and without dividends.",
+    )
+    return fig
+
+
+def stock_distribution_percent_capital(list_of_stocks):
+    capital = calc_total_capital(list_of_stocks)
+    df = pd.DataFrame()
+    stock_value_lst = []
+    name_lst = []
+    for stock in list_of_stocks:
+        name_lst.append(stock["name"])
+        value = stock["buy_in"] * stock["count"]
+        stock_value_lst.append(value)
+    df["name"] = name_lst
+    df["value"] = stock_value_lst
+    fig = px.pie(df, values=df["value"] / capital, names="name", title="% of capital per stock")
+    return fig
+
+
+def calc_cagr(stock):
+    df = get_historical_data(stock, "1d", "1y", True)
+    df["daily_returns"] = df["close"].pct_change()
+    df["cumulative_returns"] = (1 + df["daily_returns"]).cumprod()
+    trading_days = 252
+    n = len(df) / trading_days
+    cagr = (df.iloc[-1]["cumulative_returns"]) ** (1 / n) - 1
+    return cagr
+
+
+def calc_volatility(stock):
+    df = get_historical_data(stock, "1d", "1y", True)
+    df["daily_returns"] = df["close"].pct_change()
+    trading_days = 252
+    vol = df["daily_returns"].std() * np.sqrt(trading_days)
+    return vol
+
+
+def calc_sharpe_ratio(stock, rf):
+    sharpe = (calc_cagr(stock) - rf) / calc_volatility(stock)
+    return sharpe
