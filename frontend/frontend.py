@@ -250,7 +250,7 @@ with stocks_container:
                         options=["1m", "2m", "5m", "15m", "30m", "60m", "90m", "1h", "1d", "5d", "1wk", "1mo", "3mo"],
                     )
                     history_df = get_historical_data(
-                        symbol=wanted_stock["ticker"],
+                        symbols=wanted_stock["ticker"],
                         interval=interval_selected,
                         period=period_selected,
                         adjusted=adjusted_check,
@@ -352,7 +352,7 @@ with portfolio_container:
             if selected_portfolio != "All":
                 portfolio_response = get_one_portfolio(selected_portfolio[1])
             else:
-                st.write("I have not implemented the combine function yet.")
+                portfolio_response = combined_all_portfolios(portfolios)
             st.write("---")
             with st.form("Add stock to selected portfolio"):
                 st.write("Create new Portfolio")
@@ -406,6 +406,7 @@ with portfolio_container:
                 st.info("Please select a Portfolio and press the search button")
         stocks_in_portfolio_expander = st.expander("Stocks in portfolio")
         stocks_in_portfolio_df = pd.DataFrame(portfolio_response["stocks"])
+
         with stocks_in_portfolio_expander:
             st.write(stocks_in_portfolio_df)
         r3_col1, r3_col2 = st.columns(2)
@@ -479,7 +480,7 @@ with portfolio_container:
                 index=8,
             )
             history_df = get_historical_data(
-                symbol=stocks_in_portfolio_df["ticker"],
+                symbols=stocks_in_portfolio_df["ticker"],
                 interval=interval_selected,
                 period=period_selected,
                 adjusted=adjusted_check,
@@ -495,36 +496,121 @@ with portfolio_container:
                 fig = px.line(history_df_pct, x="date", y="change %", color="symbol")
                 fig.update_layout(margin=dict(l=10, r=10, t=10, b=10))
                 st.plotly_chart(fig)
-        r6_col1, r6_col2 = st.columns(2)
-        with r6_col1:
-            cagr_expander = st.expander("Cumulative Annual Growth Rate (CAGR)")
-            with cagr_expander:
-                st.write(
-                    """Compound annual growth rate (CAGR) is the rate of returns from an investment over a period of time.
-                    The calculation of CAGR is based on the presumption that all the profit will be reinvested at the end of each year."""
+        performance_expander = st.expander("Performance analysis + resdistribution suggestions")
+        with performance_expander:
+            r6_col1, r6_col2 = st.columns(2)
+            with r6_col1:
+                st.subheader("Portfolio performance calculation")
+                chosen_model = st.radio(
+                    "Choose your method",
+                    options=["HRP", "mCVAR"],
+                    help="""HRP: The HRP method works by finding subclusters of similar assets based on returns and 
+                constructing a hierarchy from these clusters to generate weights for each asset. || mCVAR:
+                The mCVAR is another popular alternative to mean-variance optimization. 
+                It works by measuring the worst-case scenarios for each asset in the portfolio, which is represented here by losing the most money.
+                The worst-case loss for each asset is then used to calculate weights to be used for allocation for each asset.""",
                 )
-                with st.spinner("Calculating CAGR for your stocks."):
-                    combined_cagr = 0
-                    for stock in stocks_in_portfolio_df["ticker"]:
-                        cagr = calc_cagr(stock)
-                        st.write(f"{stock} : {cagr*100:.2f}%")
-                        combined_cagr += cagr
-                    st.write(f"Avg. CAGR: {combined_cagr/len(stocks_in_portfolio_df)*100:.2f}%")
-        with r6_col2:
-            stock_volatility_expander = st.expander("Volatilie of your stocks/portfolio")
-            with stock_volatility_expander:
-                st.write(
-                    """Volatility here refers to the rate at which the stock price rise and fall over a particular period of time. 
-                    It is equivalent to the standard deviation of the daily returns. 
-                    The higher the stock volatility the higher the risk of the investment. This is calculated on an anual Term"""
+                period_selection = st.selectbox(
+                    "Timeframe to calculate performance over.", options=["1mo", "3mo", "1y", "ytd"], index=3
                 )
-                with st.spinner("Calculating Volatility for your stocks."):
-                    combined_volatility = 0
-                    for stock in stocks_in_portfolio_df["ticker"]:
-                        vol = calc_volatility(stock)
-                        st.write(f"{stock} : {vol*100:.2f}%")
-                        combined_volatility += vol
-                    st.write(f"Avg. Volatility: {combined_volatility/len(stocks_in_portfolio_df)*100:.2f}%")
-
+                if chosen_model == "HRP":
+                    results, weights = calc_hrp(stocks_in_portfolio_df["ticker"].tolist(), period_selection)
+                    st.write(f"Weights:")
+                    st.write(dict(weights))
+                    st.write(f"Expected annual return: {results[0]*100:.2f}%")
+                    st.write(f"Annual volatility: {results[1]*100:.2f}%")
+                    st.write(f"Sharpe Ratio: {results[2]:.3f}")
+                if chosen_model == "mCVAR":
+                    results, weights = calc_mcvar(stocks_in_portfolio_df["ticker"].tolist(), period_selection)
+                    results1 = results.portfolio_performance()
+                    st.write(f"Weights:")
+                    st.write(dict(weights))
+                    st.write(f"Expected annual return: {results1[0]*100:.2f}%")
+                    st.write(f"Annual volatility: {results1[1]*100:.2f}%")
+            with r6_col2:
+                st.subheader("Calculate share allocation with choosen weights")
+                use_portfolio_value = st.checkbox("Use currently selected portfolios value")
+                reinvesting_value = st.number_input(
+                    "Reinvesting amount", key="reinvesting_value", disabled=use_portfolio_value
+                )
+                if use_portfolio_value:
+                    reinvesting_value = capital
+                try:
+                    allocation, leftover = allocation_portfolio(
+                        stocks_in_portfolio_df["ticker"].tolist(), period_selection, weights, reinvesting_value
+                    )
+                    st.write(f"What and how much you should buy with ${reinvesting_value:.2f} as capital")
+                    st.write(allocation)
+                    st.write(f"Leftover money ${leftover:.2f}")
+                except ValueError:
+                    st.error(
+                        "Please enter a Reinvestin amount, or select your current portfolio capital via the checkbox above."
+                    )
+        # with r6_col1:
+        #     cagr_expander = st.expander("Cumulative Annual Growth Rate (CAGR)")
+        #     with cagr_expander:
+        #         st.write(
+        #             """Compound annual growth rate (CAGR) is the rate of returns from an investment over a period of time.
+        #             The calculation of CAGR is based on the presumption that all the profit will be reinvested at the end of each year."""
+        #         )
+        #         with st.spinner("Calculating CAGR for your stocks."):
+        #             combined_cagr = 0
+        #             for stock in stocks_in_portfolio_df["ticker"]:
+        #                 cagr = calc_cagr(stock)
+        #                 st.write(f"{stock} : {cagr*100:.2f}%")
+        #                 combined_cagr += cagr
+        #             st.write(f"Avg. CAGR: {combined_cagr/len(stocks_in_portfolio_df)*100:.2f}%")
+        #     sharpe_expander = st.expander("Sharpe Ratio")
+        #     with sharpe_expander:
+        #         st.write(
+        #             """Sharpe Ratio is the average return earned in excess of the risk-free rate per unit of volatility.
+        #         In simpler words, the ratio allows investors to understand the return of an investment compared to its risk.
+        #         Any ratio higher than 1 is considered a good portfolio. The higher the ratio the better the investment portfolio. """
+        #         )
+        #         rf = st.number_input(
+        #             "Risk free Rate (in %)",
+        #             help="""This is the risk free rate that is used to calculate the sharpe ratio.
+        #             Normally it's assumed to be 3% but you can change it if you so desire.""",
+        #             value=3,
+        #         )
+        #         sharpe_ratio_ovr = 0
+        #         with st.spinner("Calculating Sharpe Ratio for your stocks."):
+        #             for stock in stocks_in_portfolio_df["ticker"]:
+        #                 sharpe_ratio = calc_sharpe_ratio((combined_cagr/len(stocks_in_portfolio_df)),  (rf / 100))
+        #                 sharpe_ratio_ovr += sharpe_ratio
+        #         st.write(f"Avg. Sharpe Ratio: {sharpe_ratio_ovr/len(stocks_in_portfolio_df):.4f}")
+        # with r6_col2:
+        #     stock_volatility_expander = st.expander("Volatilie of your stocks/portfolio")
+        #     with stock_volatility_expander:
+        #         st.write(
+        #             """Volatility here refers to the rate at which the stock price rise and fall over a particular period of time.
+        #             It is equivalent to the standard deviation of the daily returns.
+        #             The higher the stock volatility the higher the risk of the investment. This is calculated on an anual Term"""
+        #         )
+        #         with st.spinner("Calculating Volatility for your stocks."):
+        #             combined_volatility = 0
+        #             for stock in stocks_in_portfolio_df["ticker"]:
+        #                 vol = calc_volatility(stock)
+        #                 st.write(f"{stock} : {vol*100:.2f}%")
+        #                 combined_volatility += vol
+        #             st.write(f"Avg. Volatility: {combined_volatility/len(stocks_in_portfolio_df)*100:.2f}%")
+        #     sortino_expander = st.expander("Sortino Ratio")
+        #     with sortino_expander:
+        #         st.write(
+        #             """Sortino Ratio is similar to the Sharpe Ratio except that it only considers
+        #         the standard deviation of the negative portfolio returns instead of the total overall volatility.
+        #         The usage of the Sortino Ratio is based on the presumption that the negative deviation
+        #         of a portfolios returns from the mean will give a better view of a portfolios performance. """
+        #         )
+        #         rf = st.number_input(
+        #             "Risk free Rate (in %)",
+        #             help="""This is the risk free rate that is used to calculate the sharpe ratio.
+        #             Normally it's assumed to be 3% but you can change it if you so desire.""",
+        #             value=3,
+        #             key="sortino_rf",
+        #         )
+        #         sortino_ratio = calc_sortino_ratio(
+        #             stock,
+        #         )
     else:
         st.error("Please log in.")

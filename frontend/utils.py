@@ -6,6 +6,12 @@ import plotly.express as px
 from decouple import config
 from datetime import datetime
 import numpy as np
+from pypfopt import HRPOpt
+from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
+from pypfopt.efficient_frontier import EfficientFrontier
+from pypfopt.expected_returns import mean_historical_return
+from pypfopt.risk_models import CovarianceShrinkage
+from pypfopt.efficient_frontier import EfficientCVaR
 
 # ---- FUNCTIONS ----
 # ---- LOGIN ----
@@ -52,8 +58,8 @@ def get_all_stocks():
         return False
 
 
-def get_historical_data(symbol, interval, period, adjusted):
-    ticker = yq.Ticker(symbol)
+def get_historical_data(symbols, interval, period, adjusted):
+    ticker = yq.Ticker(symbols)
     df = ticker.history(interval=interval, period=period, adj_ohlc=adjusted)
     df = df.reset_index()
     return df
@@ -243,7 +249,12 @@ def industry_distribution(stocks):
 
 
 def sector_distribution(stocks):
-    fig = px.pie(stocks, values=stocks["sector"].value_counts(), names="sector", title="% of Stocks in each sector")
+    fig = px.pie(
+        stocks,
+        values=stocks["sector"].value_counts(),
+        names=stocks["sector"].unique(),
+        title="% of Stocks in each sector",
+    )
     return fig
 
 
@@ -316,3 +327,61 @@ def calc_volatility(stock):
 def calc_sharpe_ratio(stock, rf):
     sharpe = (calc_cagr(stock) - rf) / calc_volatility(stock)
     return sharpe
+
+
+def prep_historical_df(symbols, period):
+    df = get_historical_data(symbols, "1d", period, True)
+    df = df[["symbol", "date", "close"]]
+    df = df.pivot_table(values="close", index="date", columns="symbol", aggfunc="first")
+    return df
+
+
+def calc_hrp(symbols, period):
+    df = prep_historical_df(symbols, period)
+    returns = df.pct_change().dropna()
+    hrp = HRPOpt(returns)
+    hrp_weights = hrp.optimize()
+    return hrp.portfolio_performance(verbose=True), hrp_weights
+
+
+def calc_mcvar(symbols, period):
+    df = prep_historical_df(symbols, period)
+    mu = mean_historical_return(df)
+    S = df.cov()
+    ef_cvar = EfficientCVaR(mu, S)
+    cvar_weights = ef_cvar.min_cvar()
+    cleaned_weights = ef_cvar.clean_weights()
+    return ef_cvar, cvar_weights
+
+
+def allocation_portfolio(tickers, period, weights, portfolio_value):
+    df = prep_historical_df(tickers, period)
+    latest_prices = get_latest_prices(df)
+    da_hrp = DiscreteAllocation(weights, latest_prices, total_portfolio_value=portfolio_value)
+    allocation, leftover = da_hrp.greedy_portfolio()
+    return allocation, leftover
+
+
+def combined_all_portfolios(portfolio_list):
+    token = st.session_state.jwt_token
+    url = f"{config('API_URL')}/portfolios"
+    headers = {"Authorization": "Bearer " + token}
+    request = requests.get(url, headers=headers)
+    if request.status_code == 200:
+        data = request.json()
+        portfolio_combined = {}
+        mon_goal = 0
+        div_goal = 0
+        stock_list = []
+        for portfolio in data:
+            div_goal += portfolio["dividends_goal"]
+            mon_goal += portfolio["monetary_goal"]
+            for stock in portfolio["stocks"]:
+                stock_list.append(stock)
+        portfolio_combined["monetary_goal"] = mon_goal
+        portfolio_combined["dividends_goal"] = div_goal
+        portfolio_combined["stocks"] = stock_list
+        portfolio_combined["name"] = "Combined Portfolio"
+        return portfolio_combined
+    else:
+        return False
