@@ -54,6 +54,7 @@ class StockBase(BaseModel):
     dividend_yield: Optional[float]
     ex_dividend_date: Optional[date]
     beta: Optional[float]
+    recommendation: Optional[str]
     fifty_two_week_high: Optional[float]
     fifty_two_week_low: Optional[float]
     fifty_day_avg: Optional[float]
@@ -90,7 +91,7 @@ class StockCreate(StockBase):
 
 class StockResponseInsidePortfolio(StockResponseSolo):
     buy_in: Optional[float]
-    count: Optional[int]
+    count: Optional[float]
 
     class Config:
         orm_mode = True
@@ -120,6 +121,15 @@ class StockSchema(StockResponseSolo):
 
 class PortfolioSchema(PortfolioResponse):
     stocks: List[StockResponseInsidePortfolio]
+
+    class Config:
+        orm_mode = True
+
+
+class StockInPortfolioUpdate(BaseModel):
+    stock_ticker: str
+    count: float
+    buy_in: float
 
     class Config:
         orm_mode = True
