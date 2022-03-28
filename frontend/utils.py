@@ -8,9 +8,7 @@ from datetime import datetime
 import numpy as np
 from pypfopt import HRPOpt
 from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
-from pypfopt.efficient_frontier import EfficientFrontier
 from pypfopt.expected_returns import mean_historical_return
-from pypfopt.risk_models import CovarianceShrinkage
 from pypfopt.efficient_frontier import EfficientCVaR
 
 # ---- FUNCTIONS ----
