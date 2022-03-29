@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 from pandas.io import sql
 from data.full_da import get_all_tickers, get_some_tickers
 from datetime import datetime
-from .config import settings
+from config import settings
 
 # -------------- Establish Connection to DB --------------------------------
 

@@ -3,9 +3,9 @@ import pandas as pd
 import requests
 import yahooquery as yq
 import plotly.express as px
+import numpy as np
 from decouple import config
 from datetime import datetime
-import numpy as np
 from pypfopt import HRPOpt
 from pypfopt.discrete_allocation import DiscreteAllocation, get_latest_prices
 from pypfopt.expected_returns import mean_historical_return

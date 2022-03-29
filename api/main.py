@@ -27,7 +27,7 @@ app.include_router(portfolio.router)
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to my API!"}
+    return {"message": "Hello, this is my API!"}
 
 
 @app.exception_handler(RequestValidationError)
