@@ -105,7 +105,7 @@ def make_df(dictionary, ticker_list):
         "country": ["summaryProfile", "country"],
         "website": ["summaryProfile", "website"],
         "price": ["financialData", "currentPrice"],
-        "beta": ["summaryProfile", "beta"],
+        "beta": ["summaryDetail", "beta"],
         "marketcap": ["summaryDetail", "marketCap"],
         "dividends": ["summaryDetail", "dividendRate"],
         "ex_dividend_date": ["summaryDetail", "exDividendDate"],

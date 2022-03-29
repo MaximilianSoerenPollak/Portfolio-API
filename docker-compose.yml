@@ -1,0 +1,26 @@
+version: "3"
+services:
+  api: 
+    build: .
+    ports: 
+    - 8000:8000
+    environment:
+      - POSTGRES_USERNAME=fastapi
+      - POSTGRES_PASSWORD=barbed-undergrad-omega
+      - DATABASE_HOSTNAME=postgres
+      - DATABASE_NAME=fastapi
+      - JWT_SECRET_KEY=f53799d5b8914cd205a8d6fbf9ef9041529e7782abe2559efd2b8a16946db576
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE=60
+      - DATABASE_PORT=5432
+      - API_URL=http://localhost:8000
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=barbed-undergrad-omega
+      - POSTGRES_DB=fastapi
+    volumes:
+        - postgres-db:/var/lib/postgresql/data
+  
+volumes:
+  postgres-db:
