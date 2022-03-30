@@ -7,37 +7,37 @@ services:
       - postgres
     ports: 
       - 8000:8000
-    environment:
-      - POSTGRES_USERNAME=postgres
-      - POSTGRES_PASSWORD=password123
-      - DATABASE_HOSTNAME=postgres-db
-      - DATABASE_NAME=fastapi
-      - JWT_SECRET_KEY=f53799d5b8914cd205a8d6fbf9ef9041529e7782abe2559efd2b8a16946db576
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE=60
-      - DATABASE_PORT=5432
-      - API_URL=http://localhost:8000
+    env_file:
+      - ./api/.env
+    # environment:
+    #   - POSTGRES_USERNAME=postgres
+    #   - POSTGRES_PASSWORD=password123
+    #   - DATABASE_HOSTNAME=postgres
+    #   - DATABASE_NAME=fastapi
+    #   - JWT_SECRET_KEY=f53799d5b8914cd205a8d6fbf9ef9041529e7782abe2559efd2b8a16946db576
+    #   - ALGORITHM=HS256
+    #   - ACCESS_TOKEN_EXPIRE=60
+    #   - DATABASE_PORT=5432
+    #   - API_URL=http://localhost:8000
     volumes:
       - ./:/usr/src/app:ro
   postgres:
-    container_name: postgres-db
+    container_name: db
     image: postgres
-    environment:
-      - POSTGRES_USERNAME=postgres
-      - POSTGRES_PASSWORD=password123
-      - POSTGRES_DB=fastapi
+    env_file:
+      - ./api/.env
     volumes:
       - postgres-db:/var/lib/postgresql/data
     ports:
       - 5432:5432
   streamlit:
+    env_file:
+      - ./frontend/.env
     container_name: streamlit
     build: frontend
     depends_on:
       - api
     ports: 
       - 8501:8501
-    environment:
-      - API_URL=http://localhost:8000
 volumes:
   postgres-db:
