@@ -1,7 +1,9 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session, joinedload
-from .. import models, schemas, oauth2
-from ..database import get_db
+import models
+import schemas
+import oauth2
+from database import get_db
 from typing import List, Union
 
 router = APIRouter(prefix="/portfolios", tags=["portfolios"])

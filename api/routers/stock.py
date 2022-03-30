@@ -1,7 +1,9 @@
 from fastapi import Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
-from .. import models, schemas, oauth2
-from ..database import get_db, load_some_data
+import models
+import schemas
+import oauth2
+from database import get_db, load_some_data
 from typing import List, Optional
 from datetime import timedelta, datetime, timezone
 from sqlalchemy import insert
