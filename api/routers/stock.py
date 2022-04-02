@@ -143,7 +143,6 @@ def add_stock_to_portfolio(
     return result
 
 
-# TODO Test Route
 @router.post("/update")
 def update_stocks(tickerlist_inc: List[str], response: Response, db: Session = Depends(get_db)):
     refused_tickers = []

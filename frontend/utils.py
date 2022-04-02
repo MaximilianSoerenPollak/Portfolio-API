@@ -46,9 +46,10 @@ def signup(email, password):
 @st.cache
 def get_all_stocks():
     token = st.session_state.jwt_token
-    url = f"{config('API_URL')}/stocks?all_stocks=True"
+    url = f"{config('API_URL')}/stocks/?all_stocks=True"
     headers = {"Authorization": "Bearer " + token}
     request = requests.get(url, headers=headers)
+    print(url)
     if request.status_code == 200:
         data = request.json()
         return pd.json_normalize(data)
@@ -141,7 +142,7 @@ def add_stock_to_db(
     volume=None,
 ):
     token = st.session_state.jwt_token
-    url = f"{config('API_URL')}/stocks"
+    url = f"{config('API_URL')}/stocks/"
     headers = {"Authorization": "Bearer " + token}
     if ex_dividend_date != "":
         ex_dividend_date = datetime.strptime(ex_dividend_date, "%Y-%m-%d")
@@ -180,7 +181,7 @@ def add_stock_to_db(
 
 def get_portfolios(allow_output_mutation=True):
     token = st.session_state.jwt_token
-    url = f"{config('API_URL')}/portfolios"
+    url = f"{config('API_URL')}/portfolios/"
     headers = {"Authorization": "Bearer " + token}
     request = requests.get(url, headers=headers)
     if request.status_code == 200:
@@ -198,7 +199,7 @@ def get_portfolios(allow_output_mutation=True):
 
 def get_one_portfolio(portfolio_id):
     token = st.session_state.jwt_token
-    url = f"{config('API_URL')}/portfolios/{portfolio_id}"
+    url = f"{config('API_URL')}/portfolios/{portfolio_id}/"
     headers = {"Authorization": "Bearer " + token}
     request = requests.get(url, headers=headers)
     if request.status_code == 200:
@@ -348,7 +349,6 @@ def calc_mcvar(symbols, period):
     S = df.cov()
     ef_cvar = EfficientCVaR(mu, S)
     cvar_weights = ef_cvar.min_cvar()
-    cleaned_weights = ef_cvar.clean_weights()
     return ef_cvar, cvar_weights
 
 
@@ -362,7 +362,7 @@ def allocation_portfolio(tickers, period, weights, portfolio_value):
 
 def combined_all_portfolios(portfolio_list):
     token = st.session_state.jwt_token
-    url = f"{config('API_URL')}/portfolios"
+    url = f"{config('API_URL')}/portfolios/"
     headers = {"Authorization": "Bearer " + token}
     request = requests.get(url, headers=headers)
     if request.status_code == 200:

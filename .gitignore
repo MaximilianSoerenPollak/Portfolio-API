@@ -5,7 +5,9 @@ __pycache__/
 
 # C extensions
 *.so
-
+# virtualenv
+capstone_venv/
+requirements.txt
 # Distribution / packaging
 .Python
 build/
