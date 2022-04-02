@@ -6,7 +6,7 @@ from pandas.io import sql
 
 # #%%
 # df = pd.read_csv("test.csv")
-SQLALCHEMY_DATABASE_URL = "postgresql://doadmin:Dj8bMd1DztP4VcvD@app-af6f96df-e61b-414f-83ee-bf872e362a4d-do-user-11252842-0.b.db.ondigitalocean.com:25060/postgres?sslmode=require"
+SQLALCHEMY_DATABASE_URL = "digital-ocean connection string."
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 # df.head()
