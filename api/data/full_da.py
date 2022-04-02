@@ -50,6 +50,7 @@ def get_stock_data(ticker_list):
             asynchronous=True,
             status_forcelist=[429, 500, 502, 503, 504, 404],
             validate=True,
+            progress=True
         )
         modules = "financialData quoteType summaryProfile summaryDetail"
         results = ticker.get_modules(modules)
@@ -93,6 +94,8 @@ def make_data_list(dictionary, ticker_list, upperdict, lowerdict):
 # ! Careful. yahooticker is integrated but not made working. It is for EU and Asian stocks once those are also in the DA pipeline
 # ! Then there will be a need to rewrite yahoo_ticker BEFORE we gather the data via yahooquery (get_stock_data).
 
+        # "ex_dividend_date",
+        # "ex_dividend_date": ["summaryDetail", "exDividendDate"],
 
 def make_df(dictionary, ticker_list):
     column_dict = {
@@ -108,7 +111,6 @@ def make_df(dictionary, ticker_list):
         "beta": ["summaryDetail", "beta"],
         "marketcap": ["summaryDetail", "marketCap"],
         "dividends": ["summaryDetail", "dividendRate"],
-        "ex_dividend_date": ["summaryDetail", "exDividendDate"],
         "fifty_two_week_high": ["summaryDetail", "fiftyTwoWeekHigh"],
         "fifty_two_week_low": ["summaryDetail", "fiftyTwoWeekLow"],
         "fifty_day_avg": ["summaryDetail", "fiftyDayAverage"],
@@ -138,7 +140,6 @@ def make_df(dictionary, ticker_list):
         "marketcap",
         "dividends",
         "dividend_yield",
-        "ex_dividend_date",
         "beta",
         "fifty_two_week_high",
         "fifty_two_week_low",
@@ -149,10 +150,14 @@ def make_df(dictionary, ticker_list):
         "volume",
     ]
     stock_df = stock_df[new_column_order]
-    stock_df.loc[stock_df["ex_dividend_date"] == "0", "ex_dividend_date"] = None
-    stock_df.loc[stock_df["ex_dividend_date"] == "{}", "ex_dividend_date"] = None
-    stock_df["ex_dividend_date"] = pd.to_datetime(stock_df["ex_dividend_date"], errors="ignore")
-    stock_df["ex_dividend_date"] = stock_df["ex_dividend_date"].dt.date
+    # try:
+    #     stock_df.loc[stock_df["ex_dividend_date"] == "0", "ex_dividend_date"] = None
+    #     stock_df.loc[stock_df["ex_dividend_date"] == "{}", "ex_dividend_date"] = None
+    #     stock_df["ex_dividend_date"] = pd.to_datetime(stock_df["ex_dividend_date"], errors="ignore")
+    #     stock_df["ex_dividend_date"] = stock_df["ex_dividend_date"].dt.date
+    # except:
+    #     print(stock_df["ex_dividend_date"]
+    # print("after all conversion of ex-")
     stock_df = stock_df[stock_df["name"].notna()]
     stock_df = stock_df.replace(0, np.nan)
     stock_df = stock_df.replace("0", None)
@@ -160,8 +165,6 @@ def make_df(dictionary, ticker_list):
     cols = list(stock_df.columns)
     stock_df = stock_df.dropna(subset=cols, thresh=7)
     return stock_df
-
-
 # %%
 def make_csv(df, filename, path):
     df.to_csv(path + filename)

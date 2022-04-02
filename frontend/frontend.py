@@ -13,6 +13,7 @@ st.set_page_config(layout="wide")
 #     st.session_state.jwt_token = ""
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
+
 # ---- STREAMLIT PAGE -----
 # ---- LOGIN ----
 login_signup_expander = st.expander("Login/Sign Up")

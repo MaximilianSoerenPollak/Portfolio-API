@@ -1,6 +1,6 @@
 FROM tiangolo/uvicorn-gunicorn:python3.8-slim
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
 COPY requirements.txt ./
 
@@ -13,6 +13,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["sh", "-c", "alembic upgrade head ; uvicorn main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port 8000"]
 # ENTRYPOINT ["bash", "/usr/src/app/entrypoint.sh"]
 EXPOSE 8000

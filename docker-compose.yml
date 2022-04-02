@@ -1,33 +1,20 @@
 version: "3"
 services:
   api: 
-    container_name: api
+    container_name: api_digial_ocean
     build: api
-    depends_on:
-      - postgres
     ports: 
       - 8000:8000
     env_file:
       - ./api/.env
     volumes:
       - ./api/:/usr/src/app:ro
-  postgres:
-    container_name: postgres-db
-    image: postgres
-    env_file:
-      - ./api/.env
-    volumes:
-      - postgres-db:/var/lib/postgresql/data
-    ports:
-      - 5432:5432
   streamlit:
     env_file:
       - ./frontend/.env
-    container_name: streamlit
+    container_name: streamlit_digital_ocean
     build: frontend
     depends_on:
       - api
     ports: 
       - 8501:8501
-volumes:
-  postgres-db:

@@ -32,9 +32,9 @@ def get_db():
 def load_all_data(save: bool = True):
     today = datetime.utcnow().date().strftime("%Y-%m-%d")
     nyse_df, nasdaq_df = get_all_tickers(save, today)
-    df_to_insert = pd.concat([nyse_df, nasdaq_df]).drop_duplicates().reset_index(drop=True)
-    sql.execute("TRUNCATE stocks RESTART IDENTITY CASCADE;", engine)
-    df_to_insert.to_sql("stocks", engine, if_exists="append", index=False)
+    # df_to_insert = pd.concat([nyse_df, nasdaq_df]).drop_duplicates().reset_index(drop=True)
+    # sql.execute("TRUNCATE stocks RESTART IDENTITY CASCADE;", engine)
+    # df_to_insert.to_sql("stocks", engine, if_exists="append", index=False)
 
 
 def load_some_data(tickerlist):
