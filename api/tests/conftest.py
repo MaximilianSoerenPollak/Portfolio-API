@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 from api.main import app
-from api.config import settings
+from config import settings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
@@ -68,4 +68,28 @@ def token(test_user):
 @pytest.fixture
 def authorized_client(client, token):
     client.headers = {**client.headers, "Authorization": f"Bearer {token}"}
+    return client
+
+
+# ----- Needed to test deleting user -----
+
+
+@pytest.fixture
+def test_user2(client):
+    user_data = {"email": "testcreate2@example.com", "password": "password123"}
+    res = client.post("/users/", json=user_data)
+    assert res.status_code == 201
+    new_user = res.json()
+    new_user["password"] = user_data["password"]
+    return new_user
+
+
+@pytest.fixture
+def token2(test_user2):
+    return create_access_token({"user_id": test_user2["id"]})
+
+
+@pytest.fixture
+def authorized_client2(client, token2):
+    client.headers = {**client.headers, "Authorization": f"Bearer {token2}"}
     return client

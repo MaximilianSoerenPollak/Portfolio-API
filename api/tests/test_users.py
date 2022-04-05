@@ -35,3 +35,13 @@ def test_login_user(client, test_user):
 def test_incorrect_login(client, test_user, email, password, status_code):
     res = client.post("/login", data={"username": email, "password": password})
     assert res.status_code == status_code
+
+
+def test_user_deletion(authorized_client2):
+    res = authorized_client2.post("/delete/")
+    assert res.status_code == 204
+
+
+def test_check_user_deletion(authorized_client2):
+    res = authorized_client2.get(f"{authorized_client2.id}")
+    assert res.status_code == 404
