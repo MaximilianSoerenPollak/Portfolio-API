@@ -1,14 +1,19 @@
 import pytest
+import string
+import random
+import api.models as models
 from fastapi.testclient import TestClient
 from api.main import app
-from config import settings
+from api.config import settings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from api.database import get_db, Base
 from api.oauth2 import create_access_token
+from faker import Faker
 
 
+# ---- SETUP FOR DB -----
 SQLALCHEMY_DATABASE_URL = f"postgresql://{settings.POSTGRES_USERNAME}:{settings.POSTGRES_PASSWORD}@{settings.DATABASE_HOSTNAME}:{settings.DATABASE_PORT}/{settings.DATABASE_NAME}_test"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
@@ -27,8 +32,9 @@ def override_get_db():
 app.dependency_overrides[get_db] = override_get_db
 
 
+# ---- TESTS ----
 @pytest.fixture()
-def session():
+def session(scope="session"):
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()
@@ -71,25 +77,63 @@ def authorized_client(client, token):
     return client
 
 
+# ----- Inserting Stocks -----
+
+RECORD_NUMBER = 1000
+
+
+@pytest.fixture
+def test_stocks(session):
+    stock_list = []
+    names = []
+    tickers = []
+    prices = []
+    for _ in range(RECORD_NUMBER):
+        names.append("".join(random.choices(string.ascii_letters, k=random.randrange(5, 20))))
+        tickers.append("".join(random.choices(string.ascii_uppercase, k=random.randrange(5))))
+        prices.append(round(random.uniform(0.5, 4000), 2))
+    tickers = set(tickers)
+    tickers = list(tickers)
+    names = names[: len(tickers)]
+    prices = prices[: len(tickers)]
+    for i in range(len(tickers)):
+        stock_dict = {}
+        stock_dict["name"] = names[i]
+        stock_dict["ticker"] = tickers[i]
+        stock_dict["yahoo_ticker"] = tickers[i]
+        stock_dict["price"] = prices[i]
+        stock_list.append(stock_dict)
+
+    def create_stock(stock):
+        return models.Stock(**stock)
+
+    stock_map = map(create_stock, stock_list)
+    stocks = list(stock_map)
+    session.add_all(stocks)
+    session.commit()
+    stocks = session.query(models.Stock).all()
+    return stocks
+
+
 # ----- Needed to test deleting user -----
 
 
-@pytest.fixture
-def test_user2(client):
-    user_data = {"email": "testcreate2@example.com", "password": "password123"}
-    res = client.post("/users/", json=user_data)
-    assert res.status_code == 201
-    new_user = res.json()
-    new_user["password"] = user_data["password"]
-    return new_user
+# @pytest.fixture
+# def test_user2(client):
+#     user_data = {"email": "testcreate2@example.com", "password": "password123"}
+#     res = client.post("/users/", json=user_data)
+#     assert res.status_code == 201
+#     new_user = res.json()
+#     new_user["password"] = user_data["password"]
+#     return new_user
 
 
-@pytest.fixture
-def token2(test_user2):
-    return create_access_token({"user_id": test_user2["id"]})
+# @pytest.fixture
+# def token2(test_user2):
+#     return create_access_token({"user_id": test_user2["id"]})
 
 
-@pytest.fixture
-def authorized_client2(client, token2):
-    client.headers = {**client.headers, "Authorization": f"Bearer {token2}"}
-    return client
+# @pytest.fixture
+# def authorized_client2(client, token2):
+#     client.headers = {**client.headers, "Authorization": f"Bearer {token2}"}
+#     return client

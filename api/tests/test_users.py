@@ -2,6 +2,7 @@ from jose import jwt
 from api import schemas
 from api.config import settings
 import pytest
+from datetime import datetime
 
 
 def test_create_user(client):
@@ -37,11 +38,23 @@ def test_incorrect_login(client, test_user, email, password, status_code):
     assert res.status_code == status_code
 
 
-def test_user_deletion(authorized_client2):
-    res = authorized_client2.post("/delete/")
+def test_check_get_single_user(client, test_user):
+    res = client.get(f"/{test_user['id']}")
+    print(res.json())
+    response = schemas.UserResponse(**res.json())
+    assert res.status_code == 200
+
+
+def test_user_deletion(authorized_client):
+    res = authorized_client.delete("/delete")
     assert res.status_code == 204
 
 
-def test_check_user_deletion(authorized_client2):
-    res = authorized_client2.get(f"{authorized_client2.id}")
+def test_check_user_deletion(authorized_client, test_user):
+    res = authorized_client.get(f"/{test_user['id']}/")
     assert res.status_code == 404
+
+
+def test_test(client):
+    res = client.get("/1")
+    assert res.status_code == 200

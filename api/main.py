@@ -1,10 +1,10 @@
+import logging
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from .database import engine
-import logging
+from api.database import engine
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from routers import stock, user, auth, portfolio
+from api.routers import stock, user, auth, portfolio
 
 app = FastAPI()
 

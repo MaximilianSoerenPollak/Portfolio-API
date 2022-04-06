@@ -1,9 +1,9 @@
+import api.models as models
+import api.schemas as schemas
+import api.oauth2 as oauth2
 from fastapi import Response, status, HTTPException, Depends, APIRouter
 from sqlalchemy.orm import Session
-import models
-import schemas
-import oauth2
-from database import get_db, load_some_data, load_all_data
+from api.database import get_db, load_some_data, load_all_data
 from typing import List, Optional
 from datetime import timedelta, datetime, timezone
 from sqlalchemy import insert
@@ -180,8 +180,9 @@ def update_stocks(tickerlist_inc: List[str], response: Response, db: Session = D
         result["updated_tickers"] = {"tickers": updated_tickers}
     return result
 
+
 @router.get("/update/all")
-def update_all_stocks(current_user: int = Depends(oauth2.get_current_user),  db: Session = Depends(get_db)):
+def update_all_stocks(current_user: int = Depends(oauth2.get_current_user), db: Session = Depends(get_db)):
     if current_user.email == "pollakmaximilian@gmail.com":
         print("Updating Tickers")
         load_all_data()

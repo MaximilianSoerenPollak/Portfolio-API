@@ -3,9 +3,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from pandas.io import sql
-from data.full_da import get_all_tickers, get_some_tickers
 from datetime import datetime
-from config import settings
+from api.data.full_da import get_all_tickers, get_some_tickers
+from api.config import settings
 
 # -------------- Establish Connection to DB --------------------------------
 
