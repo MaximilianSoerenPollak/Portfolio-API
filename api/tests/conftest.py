@@ -7,10 +7,8 @@ from api.main import app
 from api.config import settings
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
 from api.database import get_db, Base
 from api.oauth2 import create_access_token
-from faker import Faker
 
 
 # ---- SETUP FOR DB -----
