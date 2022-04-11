@@ -5,24 +5,31 @@ import pytest
 
 
 def test_create_user(client):
-    res = client.post("/users/", json={"email": "test@test.com", "password": "password123"})
+    res = client.post(
+        "/users/", json={"email": "test@test.com", "password": "password123"}
+    )
     new_user = schemas.UserResponse(**res.json())
     assert new_user.email == "test@test.com"
     assert res.status_code == 201
 
 
 def test_login_user(client, test_user):
-    res = client.post("/login", data={"username": test_user["email"], "password": test_user["password"]})
+    res = client.post(
+        "/login",
+        data={"username": test_user["email"], "password": test_user["password"]},
+    )
     login_res = schemas.Token(**res.json())
-    payload = jwt.decode(login_res.access_token, settings.JWT_SECRET_KEY, algorithms=[settings.ALGORITHM])
+    payload = jwt.decode(
+        login_res.access_token, settings.JWT_SECRET_KEY, algorithms=[settings.ALGORITHM]
+    )
     id_ = payload.get("user_id")
     assert id_ == test_user["id"]
     assert login_res.token_type == "bearer"
     assert res.status_code == 200
 
 
-def test_test(client):
-    res = client.get("/1")
+def test_test(client, test_user):
+    res = client.get(f"/users/{test_user['id']}/")
     assert res.status_code == 200
 
 
@@ -43,17 +50,17 @@ def test_incorrect_login(client, test_user, email, password, status_code):
 
 
 def test_check_get_single_user(client, test_user):
-    res = client.get(f"/{test_user['id']}")
+    res = client.get(f"/users/{test_user['id']}/")
     assert res.status_code == 200
 
 
 def test_user_deletion(authorized_client):
-    res = authorized_client.delete("/delete")
+    res = authorized_client.delete("/users/delete/")
     assert res.status_code == 204
 
 
-def test_check_user_deletion(authorized_client, test_user):
-    res = authorized_client.get(f"/{test_user['id']}/")
+def test_check_user_deletion(client):
+    res = client.get("/users/1/")
     assert res.status_code == 404
 
 
