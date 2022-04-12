@@ -48,12 +48,18 @@ def get_stocks(
 
 
 @router.get("/user", response_model=List[schemas.StockResponseSolo])
-def get_user_stocks(db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
-    stocks = db.query(models.Stock).filter(models.Stock.created_by == current_user.id).all()
+def get_user_stocks(
+    db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)
+):
+    stocks = (
+        db.query(models.Stock).filter(models.Stock.created_by == current_user.id).all()
+    )
     return stocks
 
 
-@router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.StockResponseSolo)
+@router.post(
+    "/", status_code=status.HTTP_201_CREATED, response_model=schemas.StockResponseSolo
+)
 def create_stock(
     stock: schemas.StockCreate,
     db: Session = Depends(get_db),
@@ -70,19 +76,31 @@ def create_stock(
 def get_stock(ticker: str, response: Response, db: Session = Depends(get_db)):
     stock = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
     if not stock:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"stock with ticker: {ticker} was not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"stock with ticker: {ticker} was not found.",
+        )
     return stock
 
 
 @router.delete("/{ticker}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_stock(ticker: str, db: Session = Depends(get_db), current_user: int = Depends(oauth2.get_current_user)):
+def delete_stock(
+    ticker: str,
+    db: Session = Depends(get_db),
+    current_user: int = Depends(oauth2.get_current_user),
+):
     # !Todo only admin can delete.
     stock_query = db.query(models.Stock).filter(models.Stock.ticker == ticker)
     stock = stock_query.first()
     if stock is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ticker: {ticker} does not exist")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Stock with ticker: {ticker} does not exist",
+        )
     if stock.created_by != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized."
+        )
     stock_query.delete(synchronize_session=False)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -99,10 +117,13 @@ def update_stock_manually(
     stock = stock_query.first()
     if stock is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Stock with ticker: {ticker} does not excist"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Stock with ticker: {ticker} does not excist",
         )
     if stock.created_by != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized."
+        )
     stock_query.update(updated_stock.dict(), synchronize_session=False)
     db.commit()
     return stock_query.first()
@@ -110,13 +131,25 @@ def update_stock_manually(
 
 @router.post("/add/{portfolio_id}")
 def add_stock_to_portfolio(
-    portfolio_id: int, inc_stock: schemas.StockInPortfolioUpdate, response: Response, db: Session = Depends(get_db)
+    portfolio_id: int,
+    inc_stock: schemas.StockInPortfolioUpdate,
+    response: Response,
+    db: Session = Depends(get_db),
 ):
     result = {}
-    portfolio = db.query(models.Portfolio).filter(models.Portfolio.id == portfolio_id).first()
+    portfolio = (
+        db.query(models.Portfolio).filter(models.Portfolio.id == portfolio_id).first()
+    )
     if portfolio is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No portfolio with id: {id} found.")
-    stock = db.query(models.Stock).filter(models.Stock.ticker == inc_stock.stock_ticker).first()
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No portfolio with id: {id} found.",
+        )
+    stock = (
+        db.query(models.Stock)
+        .filter(models.Stock.ticker == inc_stock.stock_ticker)
+        .first()
+    )
     if stock is None:
         return HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -147,13 +180,19 @@ def add_stock_to_portfolio(
 
 # TODO Test Route
 @router.post("/update")
-def update_stocks(tickerlist_inc: List[str], response: Response, db: Session = Depends(get_db)):
+def update_stocks(
+    tickerlist_inc: List[str], response: Response, db: Session = Depends(get_db)
+):
     refused_tickers = []
     updated_tickers = []
     result = {}
     tickerlist = tickerlist_inc.copy()
     for ticker in set(tickerlist_inc):
-        updated_at = db.query(models.Stock.updated_at).filter(models.Stock.ticker == ticker).first()
+        updated_at = (
+            db.query(models.Stock.updated_at)
+            .filter(models.Stock.ticker == ticker)
+            .first()
+        )
         time_threshold = datetime.now(timezone.utc) - timedelta(hours=5)
         if updated_at.updated_at is None:
             continue
@@ -168,7 +207,9 @@ def update_stocks(tickerlist_inc: List[str], response: Response, db: Session = D
             detail=f"Stocks with the tickers {tickerlist_inc} were already updated recently.",
         )
     for ticker in tickerlist:
-        ticker_queried = db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
+        ticker_queried = (
+            db.query(models.Stock).filter(models.Stock.ticker == ticker).first()
+        )
         updated_tickers.append(ticker_queried)
     if refused_tickers and updated_tickers:
         result["refused_tickers"] = {
@@ -182,10 +223,14 @@ def update_stocks(tickerlist_inc: List[str], response: Response, db: Session = D
 
 
 @router.get("/update/all")
-def update_all_stocks(current_user: int = Depends(oauth2.get_current_user), db: Session = Depends(get_db)):
+def update_all_stocks(
+    current_user: int = Depends(oauth2.get_current_user), db: Session = Depends(get_db)
+):
     if current_user.email == "pollakmaximilian@gmail.com":
         print("Updating Tickers")
         load_all_data()
         print("Loaded all Data")
     else:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized."
+        )

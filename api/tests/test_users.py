@@ -50,12 +50,12 @@ def test_incorrect_login(client, test_user, email, password, status_code):
 
 
 def test_check_get_single_user(client, test_user):
-    res = client.get(f"/users/{test_user['id']}/")
+    res = client.get(f"/users/{test_user['id']}")
     assert res.status_code == 200
 
 
 def test_user_deletion(authorized_client):
-    res = authorized_client.delete("/users/delete/")
+    res = authorized_client.delete("/users/delete")
     assert res.status_code == 204
 
 

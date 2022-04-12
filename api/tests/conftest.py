@@ -87,8 +87,12 @@ def test_stocks(session):
     tickers = []
     prices = []
     for _ in range(RECORD_NUMBER):
-        names.append("".join(random.choices(string.ascii_letters, k=random.randrange(5, 20))))
-        tickers.append("".join(random.choices(string.ascii_uppercase, k=random.randrange(5))))
+        names.append(
+            "".join(random.choices(string.ascii_letters, k=random.randrange(5, 20)))
+        )
+        tickers.append(
+            "".join(random.choices(string.ascii_uppercase, k=random.randrange(5)))
+        )
         prices.append(round(random.uniform(0.5, 4000), 2))
     tickers = set(tickers)
     tickers = list(tickers)
@@ -113,25 +117,18 @@ def test_stocks(session):
     return stocks
 
 
-# ----- Needed to test deleting user -----
-
-
-# @pytest.fixture
-# def test_user2(client):
-#     user_data = {"email": "testcreate2@example.com", "password": "password123"}
-#     res = client.post("/users/", json=user_data)
-#     assert res.status_code == 201
-#     new_user = res.json()
-#     new_user["password"] = user_data["password"]
-#     return new_user
-
-
-# @pytest.fixture
-# def token2(test_user2):
-#     return create_access_token({"user_id": test_user2["id"]})
-
-
-# @pytest.fixture
-# def authorized_client2(client, token2):
-#     client.headers = {**client.headers, "Authorization": f"Bearer {token2}"}
-#     return client
+@pytest.fixture
+def test_user_stock(session):
+    stock = {}
+    stock["name"] = "Teststock"
+    stock["ticker"] = "TST22"
+    stock["yahoo_ticker"] = "TST22"
+    stock["price"] = 342.23
+    stock["created_by"] = 1
+    stock_model = models.Stock(**stock)
+    session.add(stock_model)
+    session.commit()
+    stock_indb = (
+        session.query(models.Stock).filter(models.Stock.created_by == 1).first()
+    )
+    return stock_indb
