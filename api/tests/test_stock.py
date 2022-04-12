@@ -56,7 +56,7 @@ def test_update_user_stock(authorized_client, test_user_stock):
     assert res.status_code == 200
     assert response["name"] == "Teststock_Updated"
 
-
+# Test to see if we get unauthorized error.
 def test_authorization_update_stock(client):
     stock = {}
     stock["name"] = "Teststock_Updated"

@@ -116,7 +116,7 @@ def test_stocks(session):
     stocks = session.query(models.Stock).all()
     return stocks
 
-
+# Make a permanent Test stock that a user can update / delete
 @pytest.fixture
 def test_user_stock(session):
     stock = {}

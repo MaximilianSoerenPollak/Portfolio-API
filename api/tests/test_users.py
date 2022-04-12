@@ -59,6 +59,7 @@ def test_user_deletion(authorized_client):
     assert res.status_code == 204
 
 
+# Check if we deleted the user from the DB
 def test_check_user_deletion(client):
     res = client.get("/users/1/")
     assert res.status_code == 404
