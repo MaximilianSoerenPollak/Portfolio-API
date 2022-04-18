@@ -17,7 +17,7 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-<h2>NOTE: The frontend is broken. I'm working on fixing it </h2>
+<h2 align="center">NOTE: The frontend is broken. I'm working on fixing it </h2>
 <div align="center">
 
 [![MIT License][license-shield]][license-url]
