@@ -20,7 +20,7 @@
 <h2 align="center">NOTE: The frontend is broken. I'm working on fixing it </h2>
 <div align="center">
 
-[![MIT License][license-shield]][license-url]
+[![GPL3.0 License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
 
 </div>
@@ -312,7 +312,7 @@ Don't forget to give the project a star! Thanks again!
 <!-- LICENSE -->
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+Distributed under the GPL3.0 License. See `LICENSE.md` for more information.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
