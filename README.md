@@ -156,7 +156,7 @@ To get a local copy up and running follow these simple example steps.
    Activate and install all requirements
    
    ```sh
-      python2 -m venv name_of_virtualenv
+      python3 -m venv name_of_virtualenv
       source name_of_virtualenv/bin/activate
       pip -r install requirements.txt
    ```
