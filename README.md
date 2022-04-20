@@ -17,10 +17,10 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-<h2>NOTE: The frontend is broken. I'm working on fixing it </h2>
+<h2 align="center">NOTE: The frontend is broken. I'm working on fixing it </h2>
 <div align="center">
 
-[![MIT License][license-shield]][license-url]
+[![GPL3.0 License][license-shield]][license-url]
 [![LinkedIn][linkedin-shield]][linkedin-url]
 
 </div>
@@ -156,7 +156,7 @@ To get a local copy up and running follow these simple example steps.
    Activate and install all requirements
    
    ```sh
-      python2 -m venv name_of_virtualenv
+      python3 -m venv name_of_virtualenv
       source name_of_virtualenv/bin/activate
       pip -r install requirements.txt
    ```
@@ -312,7 +312,7 @@ Don't forget to give the project a star! Thanks again!
 <!-- LICENSE -->
 ## License
 
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+Distributed under the GPL3.0 License. See `LICENSE.md` for more information.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -341,7 +341,7 @@ Project Link: [https://github.com/maximiliansoerenpollak/portfolio-api](https://
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[license-shield]: https://img.shields.io/github/license/maximiliansoerenpollak/portfolio-api.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/github/license/maximiliansoerenpollak/portfolio-api
 [license-url]: https://github.com/github_username/repo_name/blob/master/LICENSE.txt
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/msoerenpollak
