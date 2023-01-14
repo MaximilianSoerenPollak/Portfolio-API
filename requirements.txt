@@ -124,7 +124,7 @@ SQLAlchemy==1.4.32
 stack-data==0.2.0
 starlette==0.17.1
 statsmodels==0.13.2
-streamlit==1.8.0
+streamlit==1.11.1
 tenacity==8.0.1
 terminado==0.13.3
 testpath==0.6.0
