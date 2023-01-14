@@ -50,7 +50,7 @@ jupyter-client==7.2.0
 jupyter-core==4.9.2
 jupyterlab-pygments==0.1.2
 jupyterlab-widgets==1.1.0
-lxml==4.8.0
+lxml==4.9.1
 Mako==1.2.0
 MarkupSafe==2.1.1
 matplotlib-inline==0.1.3
