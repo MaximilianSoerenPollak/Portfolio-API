@@ -17,11 +17,10 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-<h2 align="center">NOTE: The frontend is broken. I'm working on fixing it </h2>
+<h2 align="center">NOTE: This repo is archived and not under active development anynmore. </h2>
 <div align="center">
 
 [![GPL3.0 License][license-shield]][license-url]
-[![LinkedIn][linkedin-shield]][linkedin-url]
 
 </div>
 
@@ -343,7 +342,5 @@ Project Link: [https://github.com/maximiliansoerenpollak/portfolio-api](https://
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [license-shield]: https://img.shields.io/github/license/maximiliansoerenpollak/portfolio-api
 [license-url]: https://github.com/github_username/repo_name/blob/master/LICENSE.txt
-[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
-[linkedin-url]: https://linkedin.com/in/msoerenpollak
 [product-screenshot]: images/screenshot.png
 
